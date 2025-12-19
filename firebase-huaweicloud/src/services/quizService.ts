@@ -160,8 +160,8 @@ export const getUserQuizAttempts = async (userId: string): Promise<QuizAttempt[]
 
     // Sort client-side to avoid requiring composite index
     attempts.sort((a, b) => {
-      const aTime = a.completedAt.toMillis ? a.completedAt.toMillis() : a.completedAt.getTime?.() || 0;
-      const bTime = b.completedAt.toMillis ? b.completedAt.toMillis() : b.completedAt.getTime?.() || 0;
+      const aTime = a.completedAt.toMillis ? a.completedAt.toMillis() : (a.completedAt instanceof Date ? a.completedAt.getTime() : 0);
+      const bTime = b.completedAt.toMillis ? b.completedAt.toMillis() : (b.completedAt instanceof Date ? b.completedAt.getTime() : 0);
       return bTime - aTime; // descending order
     });
 
@@ -202,8 +202,8 @@ export const getQuizAttempts = async (
 
     // Sort client-side
     attempts.sort((a, b) => {
-      const aTime = a.completedAt.toMillis ? a.completedAt.toMillis() : a.completedAt.getTime?.() || 0;
-      const bTime = b.completedAt.toMillis ? b.completedAt.toMillis() : b.completedAt.getTime?.() || 0;
+      const aTime = a.completedAt.toMillis ? a.completedAt.toMillis() : (a.completedAt instanceof Date ? a.completedAt.getTime() : 0);
+      const bTime = b.completedAt.toMillis ? b.completedAt.toMillis() : (b.completedAt instanceof Date ? b.completedAt.getTime() : 0);
       return bTime - aTime; // descending order
     });
 
