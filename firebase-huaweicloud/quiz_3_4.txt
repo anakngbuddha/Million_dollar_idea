@@ -1,0 +1,619 @@
+import React, { useState } from 'react';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+
+const QuizApp = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState(0);
+  const [answeredQuestions, setAnsweredQuestions] = useState([]);
+
+  const questions = [
+    {
+      id: 1,
+      type: 'multiple',
+      question: 'According to the Cloud Migration Framework, which phase includes "Migration solution design" and "Technical solution for migration"?',
+      options: [
+        'Survey & Evaluation',
+        'Architecture & Solution Design',
+        'Environment Deployment & Test',
+        'Migration'
+      ],
+      correct: [1],
+      explanation: 'The Architecture & Solution Design phase includes migration solution design, technical solution for migration, verification solutions, and target architecture design (cloud architecture, O&M architecture, security architecture, and landing zone).'
+    },
+    {
+      id: 2,
+      type: 'multiple',
+      question: 'What is the recommended maximum size for a migration wave according to best practices?',
+      options: [
+        '10 applications, 100 servers, 20 databases',
+        '20 applications, 150 servers, 30 databases',
+        '30 applications, 200 servers, 40 databases',
+        '40 applications, 250 servers, 50 databases'
+      ],
+      correct: [1],
+      explanation: 'According to best practices, a wave can contain a maximum of 20 applications, 150 servers, and 30 databases. Waves larger than this are likely to fail and may need a rollback.'
+    },
+    {
+      id: 3,
+      type: 'checkbox',
+      question: 'Which of the following are key steps in deploying the target architecture? (Select all that apply)',
+      options: [
+        'Enable connectivity',
+        'Deploy cloud networks',
+        'Provision resources',
+        'Perform cutover drill',
+        'Configure billing alerts'
+      ],
+      correct: [0, 1, 2, 3],
+      explanation: 'The seven key steps are: Enable connectivity, Deploy cloud networks, Provision resources, Deploy/Migrate applications, Verification Test (Step 5), Verification Test (Step 6), and Perform a cutover drill. Billing alerts are part of financial management but not a key deployment step.'
+    },
+    {
+      id: 4,
+      type: 'multiple',
+      question: 'In the "Replatform" migration strategy, what does "Lift and reshape" mean?',
+      options: [
+        'Migrates applications without any changes',
+        'Migrates applications and makes a few adaptations',
+        'Reconstructs applications based on cloud native',
+        'Migrates applications to SaaS on the cloud'
+      ],
+      correct: [1],
+      explanation: 'Replatform (Lift and reshape) migrates applications to the cloud and makes a few adaptations, such as migrating a MySQL database from an IDC to RDS or from Alibaba Cloud EDAS to Huawei Cloud ServiceStage.'
+    },
+    {
+      id: 5,
+      type: 'true-false',
+      question: 'A VPN is preferred over a leased line (direct connection) for establishing connectivity during migration.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. A leased line (direct connection) is preferred, while a VPN is an alternative. Factors to consider include maximum bandwidth, latency, traffic fees, and link redundancy.'
+    },
+    {
+      id: 6,
+      type: 'checkbox',
+      question: 'Which factors should be considered when designing a migration path? (Select all that apply)',
+      options: [
+        'System load impact',
+        'Bandwidth requirements',
+        'Migration time window',
+        'Security compliance',
+        'Cost considerations',
+        'Marketing budget'
+      ],
+      correct: [0, 1, 2, 3, 4],
+      explanation: 'The seven factors for migration path design are: System, Bandwidth, Time, Security, Cost, Selection (migration methods and tools), Resources, and Feasibility. Marketing budget is not a technical migration factor.'
+    },
+    {
+      id: 7,
+      type: 'multiple',
+      question: 'What is the recommended duration for a migration wave according to industry best practices?',
+      options: [
+        '2 to 4 weeks',
+        '4 to 8 weeks',
+        '8 to 12 weeks',
+        '12 to 16 weeks'
+      ],
+      correct: [1],
+      explanation: 'A wave spanning four to eight weeks is most appropriate according to industry best practices. This time covers deployment, migration, and switchover, excluding the preparation phase.'
+    },
+    {
+      id: 8,
+      type: 'checkbox',
+      question: 'Which "6 Rs" migration strategies have the HIGHEST migration difficulty and cost? (Select all that apply)',
+      options: [
+        'Rehost',
+        'Replatform',
+        'Rearchitect',
+        'Repurchase',
+        'Retire'
+      ],
+      correct: [2, 3],
+      explanation: 'Rearchitect and Repurchase have the highest migration difficulty and cost, while providing high benefits. Rehost has the lowest difficulty and cost, while Retire has minimal cost and effort.'
+    },
+    {
+      id: 9,
+      type: 'true-false',
+      question: 'When planning migration waves, systems from the same supplier should be migrated in different waves to minimize vendor lock-in.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. Systems of the same supplier should be migrated to the cloud in the same wave or adjacent waves. This allows the supplier to arrange required manpower efficiently, ensure collaboration between project teams, and facilitate smooth migration.'
+    },
+    {
+      id: 10,
+      type: 'multiple',
+      question: 'In the private line deployment process, how many days is the baseline SLA for "Requirement analysis and solution development"?',
+      options: [
+        '1 day',
+        '2 days',
+        '7 days',
+        '14 days'
+      ],
+      correct: [1],
+      explanation: 'The baseline SLA for requirement analysis and solution development is 2 days for baseline solutions. Non-standard solutions require 14 days.'
+    },
+    {
+      id: 11,
+      type: 'checkbox',
+      question: 'Which data verification methods should be used for different types of data? (Select all correct pairs)',
+      options: [
+        'Historical data: Check file size, MD5, and number of records',
+        'Incremental data: Check number of records, MD5, and file size',
+        'Real-time data: Check full data records in the previous period',
+        'Historical data: Monitor forward traffic of topics',
+        'All data: HBase and Presto require migration verification'
+      ],
+      correct: [0, 1, 2],
+      explanation: 'Historical data should be checked using file size, MD5, and number of records. Incremental data uses similar methods. Real-time data checks full data records in the previous period. HBase and Presto data do NOT need migration verification.'
+    },
+    {
+      id: 12,
+      type: 'multiple',
+      question: 'What is a "Migration Group" in Huawei Cloud migration terminology?',
+      options: [
+        'A team of engineers responsible for migration',
+        'A collection of applications and infrastructure with dependencies',
+        'A set of migration tools bundled together',
+        'A phase in the migration methodology'
+      ],
+      correct: [1],
+      explanation: 'A Migration Group is a collection of applications and infrastructure that have dependencies (including environment dependencies), including applications, hosts, storage, databases, and middleware.'
+    },
+    {
+      id: 13,
+      type: 'true-false',
+      question: 'During cutover drills, all steps, actions, and migration processes must be identical to those planned for the actual switchover day.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. All steps, actions, and migration processes of the switchover drill must be the same as those on the day of the switchover. Any differences must be clarified with the customer.'
+    },
+    {
+      id: 14,
+      type: 'checkbox',
+      question: 'Which are the three main types of switchover solutions? (Select all that apply)',
+      options: [
+        'Switchover with services interrupted',
+        'Switchover with writing interrupted but reading uninterrupted',
+        'Switchover with services uninterrupted',
+        'Switchover with minimal latency',
+        'Gradual switchover over 30 days'
+      ],
+      correct: [0, 1, 2],
+      explanation: 'The three switchover solutions are: (1) Switchover with services interrupted - most commonly used, small investment, low risk; (2) Switchover with writing interrupted but reading uninterrupted - core read services not interrupted; (3) Switchover with services uninterrupted - no service interruption but highest complexity.'
+    },
+    {
+      id: 15,
+      type: 'multiple',
+      question: 'When establishing a Landing Zone, which service is used for centralized billing and cost management?',
+      options: [
+        'Cloud Eye',
+        'Central Billing',
+        'IAM',
+        'RMS'
+      ],
+      correct: [1],
+      explanation: 'Central Billing is used in the Finance/Cost management aspect of Landing Zone, along with Spending Alarm, Cost Analysis, and Cost Optimization.'
+    },
+    {
+      id: 16,
+      type: 'checkbox',
+      question: 'Which factors determine migration priority when the customer has no clear preference? (Select all that apply)',
+      options: [
+        'Service environment (dev/test/prod)',
+        'Service importance (common/important/core)',
+        'Service dependency complexity',
+        'Infrastructure complexity',
+        'Allowed downtime',
+        'Team size'
+      ],
+      correct: [0, 1, 2, 3, 4],
+      explanation: 'Migration priority is scored based on: service environment (migrate test before production), service importance (common before core), service dependency (simple before complex), infrastructure complexity (simple before complex), allowed downtime (longer before shorter), and migration strategy. Team size is not a scoring factor.'
+    },
+    {
+      id: 17,
+      type: 'true-false',
+      question: 'In the "Four Architectures and Six Factors" framework, Cost is one of the six non-functional factors.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. The six non-functional factors in cloud architecture design are: Availability, Security, Scalability, Performance, Cost, and Maintainability.'
+    },
+    {
+      id: 18,
+      type: 'multiple',
+      question: 'Which Huawei Cloud service is recommended for one-stop monitoring with capabilities for CCE cluster/node metrics, workload/POD/container metrics, and APIs?',
+      options: [
+        'Cloud Eye',
+        'AOM (Application Operations Management)',
+        'LTS (Log Tank Service)',
+        'CTS (Cloud Trace Service)'
+      ],
+      correct: [1],
+      explanation: 'AOM (Application Operations Management) provides one-stop monitoring for CCE clusters, nodes, workloads, PODs, containers, jobs, and APIs. Cloud Eye is for general cloud resource monitoring, LTS for logs, and CTS for audit trails.'
+    },
+    {
+      id: 19,
+      type: 'checkbox',
+      question: 'In the migration group planning, which are the three most influential factors for adding applications to one group? (Select all that apply)',
+      options: [
+        'Shared data dependency',
+        'Shared server dependency',
+        'Communication dependency between applications',
+        'Same development team',
+        'Similar business function'
+      ],
+      correct: [0, 1, 2],
+      explanation: 'The three most influential factors are: (1) Shared data dependency - applications sharing databases, (2) Shared server dependency - applications on the same servers, and (3) Communication dependency between applications. Team structure and business function are secondary considerations.'
+    },
+    {
+      id: 20,
+      type: 'true-false',
+      question: 'According to IAM best practices, access keys should be written directly into application code for convenience.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. You should NOT write access keys into code. Instead, consider using 3rd party secret management tools such as HashiCorp Vault, Akeyless Vault, or Docker Secret for secure credential management.'
+    },
+    {
+      id: 21,
+      type: 'multiple',
+      question: 'What is the PRIMARY purpose of a Landing Zone in cloud migration?',
+      options: [
+        'A temporary storage area for migrated data',
+        'A testing environment for applications',
+        'A secure, compliant, scalable multi-account environment',
+        'A backup location for disaster recovery'
+      ],
+      correct: [2],
+      explanation: 'A Landing Zone is a secure, compliant, and scalable multi-account environment that enables resource sharing among accounts and unified management of manpower, finance, materials, permissions, and law compliance. It\'s similar to the public decoration part of an office building and is the first step when moving to the cloud.'
+    },
+    {
+      id: 22,
+      type: 'checkbox',
+      question: 'Which monitoring thresholds are strongly recommended for host network monitoring? (Select all that apply)',
+      options: [
+        'Receive Error Packet Rate > 0',
+        'Send Error Packet Rate > 0',
+        'CPU usage > 80%',
+        'Memory usage > 90%',
+        'Receive BPS (recvBytesRate)'
+      ],
+      correct: [0, 1],
+      explanation: 'It is strongly recommended that customers configure: Receive Error Packet Rate (threshold: > 0, statistical period: 1 minute, continuous period: 3) and Send Error Packet Rate (same thresholds). These help detect network issues quickly.'
+    },
+    {
+      id: 23,
+      type: 'multiple',
+      question: 'In Project F\'s application migration case study, which tool was used for releasing containerized applications to Huawei Cloud CCE Turbo?',
+      options: [
+        'Jenkins',
+        'AMS (customer-developed tool)',
+        'Kubernetes native deployment',
+        'SMS (Server Migration Service)'
+      ],
+      correct: [1],
+      explanation: 'The customer-developed AMS tool was used, which was interconnected with Huawei Cloud CCE Turbo and intranet DNS services in advance to release containerized applications.'
+    },
+    {
+      id: 24,
+      type: 'true-false',
+      question: 'When performing data migration verification for Kafka real-time data, you should check the full data consistency across all partitions.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. For Kafka real-time data verification, you should monitor the forward traffic of the corresponding topic, not full data consistency. Different data types require different verification methods.'
+    },
+    {
+      id: 25,
+      type: 'checkbox',
+      question: 'Which services are part of the Cloud Governance Center in a Landing Zone? (Select all that apply)',
+      options: [
+        'Control Tower',
+        'Organization & Identity',
+        'RMS (Resource Management Service)',
+        'Central Billing',
+        'AOM (Application Operations Management)'
+      ],
+      correct: [0, 1, 2, 3],
+      explanation: 'The Cloud Governance Center includes: Control Tower, Organization & Identity (Organization, IAM Identity Center, IAM, Policy Analyzer), Resources (RMS, RAM, TMS), Compliance (CSB, RMS, CTS), and Finance/Cost (Central Billing, Spending Alarm, Cost Analysis). AOM is part of the Monitoring category, not governance.'
+    },
+    {
+      id: 26,
+      type: 'multiple',
+      question: 'For the "Rearchitect" migration strategy, what is the customer\'s PRIMARY motivation?',
+      options: [
+        'Cost reduction',
+        'Innovation acceleration',
+        'Availability improvement',
+        'Regulatory compliance'
+      ],
+      correct: [1],
+      explanation: 'Rearchitect is primarily chosen for innovation acceleration to improve competitiveness and business agility. It allows reconstruction of applications into microservices to shorten time-to-market for new functions, though it has high migration period, cost, and difficulty.'
+    },
+    {
+      id: 27,
+      type: 'checkbox',
+      question: 'What are the key handover actions after switchover? (Select all that apply)',
+      options: [
+        'Establish an assurance team',
+        'Resource monitoring and deep inspection',
+        'Live network change control',
+        'Strengthen monitoring in key scenarios',
+        'Establish regular communication system',
+        'Immediate team disbandment'
+      ],
+      correct: [0, 1, 2, 3, 4],
+      explanation: 'All five key handover actions should be implemented: (1) Establish assurance team with PM, SRE, TAM, ITA, (2) Resource monitoring and deep inspection, (3) Live network change control with TAM/SRE review, (4) Strengthen monitoring for service rollout, upgrades, and key scenarios, (5) Establish regular communication (weekly/bi-weekly meetings). Team should remain engaged, not disband.'
+    },
+    {
+      id: 28,
+      type: 'true-false',
+      question: 'In a switchover with services uninterrupted, data consistency can always be guaranteed through dual-write or two-way synchronization.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. Switchover with services uninterrupted CANNOT ensure data consistency. While it provides no service interruption, it has risks including data inconsistency and potential functional risks. It requires 30+ days of service reconstruction and has high complexity.'
+    },
+    {
+      id: 29,
+      type: 'multiple',
+      question: 'According to the document, what is the maximum number of times AOM collection probes should be limited to on a single node?',
+      options: [
+        '10 probes',
+        '15 probes',
+        '20 probes',
+        '25 probes'
+      ],
+      correct: [2],
+      explanation: 'It is recommended that the number of probes that use APM (Application Performance Management) on a single node be limited to 20. The consumption is related to the number of probes, inter-service invocation times, and sampling rate.'
+    },
+    {
+      id: 30,
+      type: 'checkbox',
+      question: 'Which tools are mentioned for migrating storage data (OSS, EBS, NAS) in Project F? (Select all that apply)',
+      options: [
+        'OMS (Object Migration Service)',
+        'Rclone',
+        'SCP',
+        'DRS (Data Replication Service)',
+        'CDM (Cloud Data Migration)'
+      ],
+      correct: [0, 1, 2],
+      explanation: 'For storage migration in Project F, three tools were used: OMS (Object Migration Service), Rclone, and SCP to migrate full and incremental storage data from OSS, EBS, and NAS to OBS, EVS, and SFS Turbo. DRS is for databases and CDM is for big data scenarios.'
+    }
+  ];
+
+  const handleAnswerSelect = (optionIndex) => {
+    const currentQ = questions[currentQuestion];
+    
+    if (currentQ.type === 'checkbox') {
+      if (selectedAnswers.includes(optionIndex)) {
+        setSelectedAnswers(selectedAnswers.filter(a => a !== optionIndex));
+      } else {
+        setSelectedAnswers([...selectedAnswers, optionIndex]);
+      }
+    } else {
+      setSelectedAnswers([optionIndex]);
+    }
+  };
+
+  const checkAnswer = () => {
+    const currentQ = questions[currentQuestion];
+    const sortedSelected = [...selectedAnswers].sort();
+    const sortedCorrect = [...currentQ.correct].sort();
+    
+    const isCorrect = JSON.stringify(sortedSelected) === JSON.stringify(sortedCorrect);
+    
+    setAnsweredQuestions([...answeredQuestions, {
+      questionId: currentQ.id,
+      selected: selectedAnswers,
+      correct: currentQ.correct,
+      isCorrect
+    }]);
+    
+    if (isCorrect) {
+      setScore(score + 1);
+    }
+    
+    setShowResult(true);
+  };
+
+  const nextQuestion = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswers([]);
+      setShowResult(false);
+    }
+  };
+
+  const restartQuiz = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswers([]);
+    setShowResult(false);
+    setScore(0);
+    setAnsweredQuestions([]);
+  };
+
+  const currentQ = questions[currentQuestion];
+  const isAnswered = answeredQuestions.find(a => a.questionId === currentQ.id);
+  const isCorrect = isAnswered?.isCorrect;
+
+  if (currentQuestion >= questions.length) {
+    const percentage = ((score / questions.length) * 100).toFixed(1);
+    const passed = percentage >= 70;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-gray-100 p-4">
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Quiz Complete!</h1>
+            <div className={`text-6xl font-bold mb-4 ${passed ? 'text-green-600' : 'text-red-600'}`}>
+              {score}/{questions.length}
+            </div>
+            <div className="text-2xl text-gray-600 mb-8">
+              {percentage}% - {passed ? 'PASSED ✓' : 'FAILED ✗'}
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">Performance Breakdown</h2>
+              <div className="grid grid-cols-2 gap-4 text-left">
+                <div>
+                  <p className="text-gray-600">Correct Answers:</p>
+                  <p className="text-2xl font-bold text-green-600">{score}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Incorrect Answers:</p>
+                  <p className="text-2xl font-bold text-red-600">{questions.length - score}</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={restartQuiz}
+              className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            >
+              Restart Quiz
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-gray-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl p-6 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              Huawei Cloud Migration Quiz
+            </h1>
+            <div className="text-sm text-gray-600">
+              Question {currentQuestion + 1} of {questions.length}
+            </div>
+          </div>
+          
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+            <div
+              className="bg-red-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
+            />
+          </div>
+
+          <div className="mb-2">
+            <span className="inline-block bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full font-semibold mb-4">
+              {currentQ.type === 'checkbox' ? 'Multiple Answers' : 
+               currentQ.type === 'true-false' ? 'True/False' : 'Single Answer'}
+            </span>
+          </div>
+
+          <h2 className="text-xl font-semibold text-gray-800 mb-6">
+            {currentQ.question}
+          </h2>
+
+          <div className="space-y-3 mb-6">
+            {currentQ.options.map((option, index) => {
+              const isSelected = selectedAnswers.includes(index);
+              const isCorrectOption = currentQ.correct.includes(index);
+              const showCorrectness = showResult;
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => !showResult && handleAnswerSelect(index)}
+                  disabled={showResult}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                    showResult
+                      ? isCorrectOption
+                        ? 'border-green-500 bg-green-50'
+                        : isSelected
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 bg-gray-50'
+                      : isSelected
+                      ? 'border-red-600 bg-red-50'
+                      : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
+                  } ${showResult ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{option}</span>
+                    {showResult && (
+                      <span>
+                        {isCorrectOption ? (
+                          <CheckCircle className="text-green-600" size={24} />
+                        ) : isSelected ? (
+                          <XCircle className="text-red-600" size={24} />
+                        ) : null}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {showResult && (
+            <div className={`p-4 rounded-lg mb-6 ${
+              isCorrect ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {isCorrect ? (
+                  <CheckCircle className="text-green-600 flex-shrink-0 mt-1" size={24} />
+                ) : (
+                  <XCircle className="text-red-600 flex-shrink-0 mt-1" size={24} />
+                )}
+                <div>
+                  <h3 className={`font-semibold mb-2 ${
+                    isCorrect ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {isCorrect ? 'Correct!' : 'Incorrect'}
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {currentQ.explanation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              Score: {score}/{answeredQuestions.length}
+            </div>
+            <div className="space-x-3">
+              {!showResult ? (
+                <button
+                  onClick={checkAnswer}
+                  disabled={selectedAnswers.length === 0}
+                  className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                    selectedAnswers.length === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  Submit Answer
+                </button>
+              ) : (
+                <button
+                  onClick={nextQuestion}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                >
+                  {currentQuestion < questions.length - 1 ? 'Next Question →' : 'View Results'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <AlertCircle size={16} />
+            <span>
+              {currentQ.type === 'checkbox' 
+                ? 'Select all correct answers before submitting' 
+                : 'Select one answer before submitting'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuizApp;

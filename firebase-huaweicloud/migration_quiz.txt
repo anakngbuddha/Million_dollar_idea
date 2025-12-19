@@ -1,0 +1,162 @@
+True or False
+1. After database migration, you need to check whether the data on the destination end is consistent with that on the source end. (1 point)
+   - A. True
+   - B. False
+
+2. The basic rule of a migration survey is to do the easy part first and then the difficult part. (1 point)
+   - A. True
+   - B. False
+
+3. Migrating an on-premises MySQL database to a database built on a Huawei Cloud ECS is a Rehost migration. (1 point)
+   - A. True
+   - B. False
+
+4. image-syncer is used to migrate container storage and supports both PersistentVolume (PV) and PersistentVolumeClaim (PVC) data migration. (1 point)
+   - A. True
+   - B. False
+
+5. Generally, after the production environment is migrated to the cloud, we can consider migrating the test environment to the cloud. (1 point)
+   - A. True
+   - B. False
+
+6. If an ECS has been created and can be accessed, the OS has been successfully installed. (1 point)
+   - A. True
+   - B. False
+
+7. During database migration, data replication may impact disk access performance or occupy network bandwidth resources in the existing working environment. You need to select an appropriate migration time. (1 point)
+   - A. True
+   - B. False
+
+8. If the source Redis does not allow Rsync, Huawei Cloud Distributed Cache Service (DCS) cannot migrate incremental data online. (1 point)
+   - A. True
+   - B. False
+
+9. In addition to saving costs and maintaining the desired performance, elastic design improves reliability. (1 point)
+   - A. True
+   - B. False
+
+10. When executing a migration task, Object Storage Migration Service (OMS) can list and analyze objects in the source bucket. You need to specify the vendor and access credential of the source object storage service. (1 point)
+    - A. True
+    - B. False
+
+Single Choice
+11. Which of following scenarios is Cloud Storage Gateway (CSG) suitable for? (1 point)
+    - A. A large amount of data needs to be uploaded to Huawei Cloud, but the network bandwidth is small.
+    - B. Application data is stored using a network file sharing protocol and needs to be dynamically backed up to the cloud.
+    - C. Data needs to be migrated from Huawei Cloud to on-premises data centers.
+    - D. Data needs to be backed up from Elastic Volume Service (EVS) disks to Object Storage Service (OBS).
+
+12. Which of the following is not contained in the technical solution design? (1 point)
+    - A. Migration path
+    - B. Atomic migration solution
+    - C. Switchover solution
+    - D. Survey of resource information
+
+13. Planning migration waves properly is an important step in the migration solution design. What is the recommended duration of a wave? (1 point)
+    - A. 14 days
+    - B. 60 days
+    - C. 90 days
+    - D. 120 days
+
+14. Assume that the hardware configurations of a key RDS instance were modified. Which of the following services can help you confirm when the modification was made and who did this? (1 point)
+    - A. Cloud Trace Service (CTS)
+    - B. Cloud Eye (CES)
+    - C. Elastic Cloud Server (ECS)
+    - D. Identity and Access Management (IAM)
+
+15. Which of the following statements is false about AOF migration in Redis? (1 point)
+    - A. AOF is a data file for online migration.
+    - B. AOF records data changes in the source Redis, and is similar to the binlog of a relational database.
+    - C. You can use AOF to restore data to any time point.
+    - D. DCS can be configured to automatically generate AOF files.
+
+16. Which of the following statements about Server Migration Service (SMS) is incorrect? (1 point)
+    - A. SMS ensures that source servers continue to run during the migration.
+    - B. SMS requires that rsync be installed on Linux source servers for file-level migration.
+    - C. SMS supports full synchronization and incremental synchronization.
+    - D. During a migration using SMS, you can log in to the target server to view the data synchronization progress. However, you are advised not to modify data on the target server.
+
+17. Which of the following is not a key data check item? (1 point)
+    - A. Data file size
+    - B. Number of entries in a data table
+    - C. MD5 checksum value of a data file
+    - D. Data file content
+
+18. Which of the following cloud native resource migration solutions is not feasible? (1 point)
+    - A. Container deployment: docker pull/push or image-syncer is used to deploy containers on Huawei Cloud CCE.
+    - B. Container network: Virtual Private Cloud (VPC) is used to design network and Elastic Load Balance (ELB) is used to import service access traffic.
+    - C. Container storage: For PersistentVolume (PV), Velero and the e-backup add-on are used together.
+    - D. Container image: Container images are submitted to Huawei Cloud SWR.
+
+19. Which of the following migration tools is recommended for Huawei Cloud RDS for PostgreSQL? (1 point)
+    - A. Data Replication Service (DRS)
+    - B. Server Migration Service (SMS)
+    - C. Object Storage Migration Service (OMS)
+    - D. Online migration of Distributed Cache Service (DCS)
+
+20. Which of the following information about the source database do we need to focus on during the data migration evaluation? (1 point)
+    - A. Its shards, storage space, and HA and TPS/QPS requirements
+    - B. Its authorization and costs
+    - C. Its CPUs and memory
+    - D. Its NIC and bandwidth configuration
+
+Multiple Choice
+21. Which of the following services can be used to migrate application data from an on-premises data center or a third-party cloud vendor to Huawei Cloud? (1 point)
+    - A. Data Replication Service (DRS)
+    - B. Cloud Backup and Recovery (CBR)
+    - C. Data Express Service (DES)
+    - D. RDS snapshot
+
+22. Which of the following belong to the six factors of architecture design? (1 point)
+    - A. Application security
+    - B. Application functionality
+    - C. Application availability
+    - D. Application cost
+
+23. Which of the following need to be done in migration wave planning? (1 point)
+    - A. Migration group planning
+    - B. Migration wave planning
+    - C. Selection of technical tools
+    - D. Importance planning
+
+24. Which of the following database engines can be used as the source in data synchronization of Data Replication Service (DRS)? (1 point)
+    - A. MySQL
+    - B. MongoDB
+    - C. Kafka
+    - D. Redis
+
+25. Which of the following can be used to establish a connection between Virtual Private Clouds (VPCs)? (1 point)
+    - A. Direct Connect
+    - B. VPN
+    - C. Cloud Connect
+    - D. VPC peering connection
+
+26. Which of the following solutions can be used to migrate Redis databases reliably? (1 point)
+    - A. Migrating Redis hosts using Server Migration Service (SMS)
+    - B. Offline migration using AOF files
+    - C. Data Replication Service (DRS)
+    - D. Online migration using the PSYNC API
+
+27. During the migration using Server Migration Service (SMS), which of the following can be used for the communication between the source server and the target server? (1 point)
+    - A. Internet
+    - B. Virtual Private Cloud (VPC)
+    - C. Edge acceleration network
+    - D. Financial zone network
+
+28. Which of the following are true about the roles and their responsibilities in a switchover drill? (1 point)
+    - A. The ITA produces, maintains, and updates the runbook.
+    - B. The ITA prepares for the drill, including holding a drill preparation meeting.
+    - C. The ITA, PM, and customer perform the switchover drill together.
+    - D. The ITA and PM review the drill.
+
+29. Which of the following are unique aspects of cloud native application migration? (1 point)
+    - A. Compute: application image
+    - B. Database: database data
+    - C. Storage: StorageClass, PersistentVolumeClaim (PVC), and PersistentVolume (PV)
+    - D. Host: Support of OSs and containers
+
+30. Which of the following can be used to migrate servers to Huawei Cloud? (1 point)
+    - A. Server Migration Service (SMS)
+    - B. Generating images for these servers and importing the images to Huawei
+    - C. Redeploying applications on servers in Huawei Cloud
+    - D. Data Replication Service (DRS)

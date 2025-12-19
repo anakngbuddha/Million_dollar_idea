@@ -1,0 +1,227 @@
+.verification-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  padding: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.verification-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+.verification-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.verification-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.verification-header p {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.email-display {
+  font-weight: 600;
+  color: #2563eb;
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+
+.verification-form {
+  margin-bottom: 1.5rem;
+}
+
+.verification-instructions {
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.verification-instructions h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.verification-instructions ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.verification-instructions li {
+  font-size: 0.875rem;
+  color: #475569;
+  padding: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.verification-instructions strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.error-message {
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  border-left: 4px solid #dc2626;
+  font-weight: 500;
+}
+
+.success-message {
+  padding: 0.75rem;
+  background-color: #dcfce7;
+  color: #166534;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  border-left: 4px solid #16a34a;
+  font-weight: 500;
+}
+
+.verify-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.verify-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+
+.verify-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.verification-options {
+  text-align: center;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.verification-options p {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.resend-button {
+  background-color: #f1f5f9;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  padding: 0.625rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.resend-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  color: white;
+}
+
+.resend-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.verification-info {
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.verification-info h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.verification-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.verification-info li {
+  font-size: 0.75rem;
+  color: #64748b;
+  padding: 0.25rem 0;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.verification-info li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #2563eb;
+  font-weight: bold;
+}
+
+.verification-note {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.verification-note strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .verification-card {
+    padding: 1.5rem;
+  }
+
+  .verification-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .verification-instructions ol {
+    padding-left: 1.25rem;
+  }
+}

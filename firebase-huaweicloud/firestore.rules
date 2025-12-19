@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - each user can only read/write their own document
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Quiz Attempts collection - users can only read/write their own attempts
+    match /quizAttempts/{attemptId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow list: if request.auth != null;
+      allow write: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Quiz Statistics collection - users can only read/write their own stats
+    match /quizStats/{userId} {
+      allow read: if request.auth.uid == userId;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Custom Quizzes - visibility-based access control
+    match /customQuizzes/{quizId} {
+      // Create: authenticated users can create quizzes
+      allow create: if request.auth != null && request.resource.data.creatorId == request.auth.uid;
+      
+      // Read: depends on visibility
+      // - public: anyone authenticated can read
+      // - private: only creator can read
+      // - shared: creator or users in sharedWith array can read
+      allow read: if request.auth != null && (
+        resource.data.visibility == 'public' ||
+        resource.data.creatorId == request.auth.uid ||
+        (resource.data.visibility == 'shared' && request.auth.uid in resource.data.sharedWith)
+      );
+      
+      // List: authenticated users can list (filtering happens in read rules)
+      allow list: if request.auth != null;
+      
+      // Update: only creator can update
+      allow update: if request.auth != null && resource.data.creatorId == request.auth.uid;
+      
+      // Delete: only creator can delete
+      allow delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+    }
+
+    // Community Posts - authenticated users can create/read/list posts
+    match /posts/{postId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null;
+      allow list: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount', 'updatedAt'])) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'userVotes']))
+      );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow read: if request.auth != null;
+        allow list: if request.auth != null;
+        allow update: if request.auth != null && (
+          resource.data.userId == request.auth.uid ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'updatedAt'])) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'userVotes']))
+        );
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+        // Replies subcollection
+        match /replies/{replyId} {
+          allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+          allow read: if request.auth != null;
+          allow list: if request.auth != null;
+          allow update: if request.auth != null && (
+            resource.data.userId == request.auth.uid ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'userVotes']))
+          );
+          allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        }
+      }
+    }
+  }
+}

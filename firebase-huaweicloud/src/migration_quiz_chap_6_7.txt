@@ -1,0 +1,576 @@
+import React, { useState } from 'react';
+import { CheckCircle, XCircle, RotateCcw, Award } from 'lucide-react';
+
+const QuizApp = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(false);
+  const [results, setResults] = useState([]);
+
+  const questions = [
+    {
+      id: 1,
+      type: 'multiple-choice',
+      question: 'What is the average migration speed for OMS (Object Storage Migration Service)?',
+      options: ['10 TB/day', '20 TB/day', '30 TB/day', '40 TB/day'],
+      correct: [1],
+      explanation: 'OMS has an average migration speed of 20 TB/day with a maximum of 40 TB/day.'
+    },
+    {
+      id: 2,
+      type: 'true-false',
+      question: 'DRS (Data Replication Service) supports the use of localStorage and sessionStorage APIs in artifacts.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. Browser storage APIs like localStorage and sessionStorage are NOT supported in Claude.ai artifacts and will cause them to fail.'
+    },
+    {
+      id: 3,
+      type: 'multiple-answer',
+      question: 'Which of the following are key milestones in a database migration project? (Select all that apply)',
+      options: ['Project planning', 'Service switchover and observation', 'Data migration', 'Marketing campaign', 'Acceptance'],
+      correct: [0, 1, 2, 4],
+      explanation: 'The key milestones are: Project planning, Development and testing, Data migration, Service switchover and observation, and Acceptance.'
+    },
+    {
+      id: 4,
+      type: 'multiple-choice',
+      question: 'What is the reliability percentage of OBS (Object Storage Service)?',
+      options: ['99.99%', '99.999%', '99.9999999999%', '99.99999999%'],
+      correct: [2],
+      explanation: 'OBS offers 99.9999999999% (twelve nines) reliability.'
+    },
+    {
+      id: 5,
+      type: 'true-false',
+      question: 'In MongoDB 4.0, each service user must have both read and readAnyDatabase permissions on the admin database.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. In MongoDB 4.0, each service user only needs the read permission on the admin database. MongoDB 3.0 requires both read and readAnyDatabase permissions.'
+    },
+    {
+      id: 6,
+      type: 'multiple-choice',
+      question: 'What is the maximum object size supported by OBS?',
+      options: ['10 TB', '24 TB', '48 TB', '100 TB'],
+      correct: [2],
+      explanation: 'OBS supports objects up to 48 TB in size.'
+    },
+    {
+      id: 7,
+      type: 'multiple-answer',
+      question: 'Which migration tools are mentioned for database migration? (Select all that apply)',
+      options: ['DRS', 'OMS', 'Non-commercial tool', 'DES', 'CSG'],
+      correct: [0, 2],
+      explanation: 'DRS (Data Replication Service) and non-commercial tools are mentioned for database migration in the document.'
+    },
+    {
+      id: 8,
+      type: 'true-false',
+      question: 'For RDS DB instances with medium performance specifications (8 cores, 16/32 GB), it is recommended to use 32 shards per instance.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. For medium spec instances (8 cores), 16 shards are recommended. 32 shards are recommended for high-spec instances (16 cores).'
+    },
+    {
+      id: 9,
+      type: 'multiple-choice',
+      question: 'What is the recommended disk usage percentage to maintain for RDS storage capacity?',
+      options: ['40-50%', '50-60%', '60-70%', '70-80%'],
+      correct: [2],
+      explanation: 'It is recommended to keep disk usage around 60-70% of total disk capacity.'
+    },
+    {
+      id: 10,
+      type: 'multiple-answer',
+      question: 'Which are valid MySQL architecture evolution stages? (Select all that apply)',
+      options: ['Single-Node Architecture', 'Primary/Standby Architecture', 'Distributed Architecture with Sharding', 'Cloud-only Architecture', 'Quantum Architecture'],
+      correct: [0, 1, 2],
+      explanation: 'The document describes Single-Node, Primary/Standby with Read/Write splitting, and Distributed Architecture with Sharding.'
+    },
+    {
+      id: 11,
+      type: 'true-false',
+      question: 'EVS (Elastic Volume Service) supports up to 64 TB for a single disk.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. EVS supports up to 32 TB for a single disk.'
+    },
+    {
+      id: 12,
+      type: 'multiple-choice',
+      question: 'In the database migration timeline, when should "Complete data synchronization" occur?',
+      options: ['Day T+20', 'Day T+40', 'Day T+60', 'Day T+150'],
+      correct: [2],
+      explanation: 'Complete data synchronization should occur at Day T+60 according to the migration timeline.'
+    },
+    {
+      id: 13,
+      type: 'multiple-answer',
+      question: 'What are the three layers of a distributed database logical architecture? (Select all that apply)',
+      options: ['Compute layer', 'Storage layer', 'Metadata layer', 'Application layer', 'Network layer'],
+      correct: [0, 1, 2],
+      explanation: 'A distributed database consists of the compute layer (SQL layer), storage layer, and metadata layer.'
+    },
+    {
+      id: 14,
+      type: 'true-false',
+      question: 'SFS (Scalable File Service) has 99.99999999% (ten nines) reliability.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. SFS offers 99.99999999% (ten nines) reliability.'
+    },
+    {
+      id: 15,
+      type: 'multiple-choice',
+      question: 'What is the storage capacity limit for a single RDS DB instance on Huawei Cloud?',
+      options: ['2 TB', '4 TB', '8 TB', '16 TB'],
+      correct: [1],
+      explanation: 'The storage capacity of a single RDS DB instance on Huawei Cloud is limited to 4 TB.'
+    },
+    {
+      id: 16,
+      type: 'multiple-answer',
+      question: 'Which special characters are recommended for DDS passwords? (Select all that apply)',
+      options: ['Asterisk (*)', 'Exclamation mark (!)', 'Dollar sign ($)', 'Ampersand (&)', 'At symbol (@)'],
+      correct: [0, 1],
+      explanation: 'The document recommends asterisks (*) and exclamation marks (!) as special characters for DDS passwords, as other characters may be truncated.'
+    },
+    {
+      id: 17,
+      type: 'true-false',
+      question: 'When migrating to DDM, performing level-1 sharding (database sharding without table sharding) can maximize DDM performance.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. Level-1 sharding allows for better parallel execution in DDM, while level-2 sharding causes table shards to be executed serially.'
+    },
+    {
+      id: 18,
+      type: 'multiple-choice',
+      question: 'How many table shards are recommended if there are 1 billion data records and a single table should contain no more than 10 million records?',
+      options: ['50 shards', '100 shards', '150 shards', '200 shards'],
+      correct: [1],
+      explanation: '1 billion / 10 million = 100 table shards are required.'
+    },
+    {
+      id: 19,
+      type: 'multiple-answer',
+      question: 'What types of vertical sharding are mentioned? (Select all that apply)',
+      options: ['Vertical table sharding', 'Vertical database sharding', 'Vertical column sharding', 'Vertical row sharding'],
+      correct: [0, 1],
+      explanation: 'Vertical sharding is classified as vertical table sharding and vertical database sharding.'
+    },
+    {
+      id: 20,
+      type: 'true-false',
+      question: 'DRS full synchronization can synchronize table structures, indexes, unique keys, and primary keys.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. DRS full synchronization supports synchronizing table structures, indexes, unique keys, and primary keys.'
+    },
+    {
+      id: 21,
+      type: 'multiple-choice',
+      question: 'For a DDM instance with 8 CPU cores and 16 GB memory, what is the approximate QPS performance baseline?',
+      options: ['22,563', '45,158', '88,138', '126,855'],
+      correct: [1],
+      explanation: 'According to the performance baseline table, a DDM instance with 8 cores and 16 GB has a QPS of approximately 45,158.'
+    },
+    {
+      id: 22,
+      type: 'multiple-answer',
+      question: 'Which migration methods are mentioned for PostgreSQL databases? (Select all that apply)',
+      options: ['Online migration (full)', 'Online migration (full+incremental)', 'Offline migration', 'Hybrid migration'],
+      correct: [0, 1],
+      explanation: 'The document mentions online migration (full) for PostgreSQL 9.4 and online migration (full+incremental) for PostgreSQL 10 and 12.'
+    },
+    {
+      id: 23,
+      type: 'true-false',
+      question: 'In distributed databases, a global table (broadcast table) stores full and identical data in each database shard.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. A global table (also called broadcast table) stores a copy of full and identical data in each database shard.'
+    },
+    {
+      id: 24,
+      type: 'multiple-choice',
+      question: 'What is the total number of CPU cores recommended for DDM instances relative to RDS instances?',
+      options: ['Equal to RDS', 'Half of RDS', 'Double of RDS', 'Quarter of RDS'],
+      correct: [1],
+      explanation: 'The total number of CPU cores of all DDM instance nodes should be half of that of RDS DB instances.'
+    },
+    {
+      id: 25,
+      type: 'multiple-answer',
+      question: 'Which services does OMS support migration from? (Select all that apply)',
+      options: ['AWS S3', 'Azure', 'Alibaba Cloud OSS', 'Tencent Cloud', 'Google Cloud Storage'],
+      correct: [0, 1, 2, 3],
+      explanation: 'OMS supports migration from AWS, Azure, Aliyun (Alibaba), and Tencent Cloud.'
+    },
+    {
+      id: 26,
+      type: 'true-false',
+      question: 'During incremental synchronization in MySQL migration, the values of innodb_flush_log_at_trx_commit and sync_binlog should be changed to 2 and 500 respectively.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. These values (2 and 500) are used during full synchronization to improve efficiency. During incremental synchronization, they should be changed to 1.'
+    },
+    {
+      id: 27,
+      type: 'multiple-choice',
+      question: 'What is the durability percentage for EVS with three-copy redundancy in a single AZ?',
+      options: ['99.9%', '99.999%', '99.9999999%', '99.99999999%'],
+      correct: [2],
+      explanation: 'EVS provides 99.9999999% (nine nines) durability with three-copy redundancy in a single AZ.'
+    },
+    {
+      id: 28,
+      type: 'multiple-answer',
+      question: 'Which sharding algorithms are mentioned as general approaches? (Select all that apply)',
+      options: ['Hash algorithms', 'Time-based hash algorithms', 'Range algorithms', 'Modulo algorithms'],
+      correct: [0, 1],
+      explanation: 'The document mentions hash algorithms and time-based hash algorithms as general sharding algorithms.'
+    },
+    {
+      id: 29,
+      type: 'true-false',
+      question: 'When using DRS to migrate from other distributed databases to DDM, the source should be connected to the compute layer.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. The source needs to be connected to the storage layer because it has full physical data and binary logs. The destination connects to DDM (compute layer).'
+    },
+    {
+      id: 30,
+      type: 'multiple-choice',
+      question: 'If there are 50 million or more data records, what is the recommended maximum number of records in a single table?',
+      options: ['5 million', '10 million', '20 million', '50 million'],
+      correct: [1],
+      explanation: 'For databases with more than 50 million records, sharding is recommended with no more than 10 million records per table.'
+    },
+    {
+      id: 31,
+      type: 'multiple-answer',
+      question: 'What are the phases in the OMS migration process? (Select all that apply)',
+      options: ['Migration preparations', 'Migration implementation plan', 'Drill and emergency plan', 'Marketing review', 'Migration assurance'],
+      correct: [0, 1, 2, 4],
+      explanation: 'The OMS migration process includes: Migration preparations, Migration implementation plan, Drill and emergency plan, and Migration assurance.'
+    },
+    {
+      id: 32,
+      type: 'true-false',
+      question: 'MySQL migration should always select the standby database as the migration source in a DRS task.',
+      options: ['True', 'False'],
+      correct: [1],
+      explanation: 'False. The primary database should be selected as the migration source, as standby databases may have non-standard binlog that could result in data loss.'
+    },
+    {
+      id: 33,
+      type: 'multiple-choice',
+      question: 'In the database migration drill process, what should be done FIRST?',
+      options: ['Stop applications on migration source', 'Revoke write permissions', 'Grant write permissions on Huawei Cloud', 'Monitor source databases'],
+      correct: [1],
+      explanation: 'The first step in the migration drill is to revoke write permissions on the migration source.'
+    },
+    {
+      id: 34,
+      type: 'multiple-answer',
+      question: 'Which storage services are mentioned for Huawei Cloud? (Select all that apply)',
+      options: ['OBS', 'SFS', 'EVS', 'EBS', 'NAS'],
+      correct: [0, 1, 2],
+      explanation: 'Huawei Cloud storage services include OBS (Object Storage Service), SFS (Scalable File Service), and EVS (Elastic Volume Service).'
+    },
+    {
+      id: 35,
+      type: 'true-false',
+      question: 'OMS automatically restores archive data and migrates it to destination buckets.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. OMS supports automatic restoration of archive data for migration to destination buckets.'
+    },
+    {
+      id: 36,
+      type: 'multiple-choice',
+      question: 'What is the typical project completion timeline from project initiation to acceptance?',
+      options: ['120 days', '140 days', '160 days', '180 days'],
+      correct: [2],
+      explanation: 'According to the timeline, from Day T (initiation) to Day T+160 (acceptance completion) is 160 days.'
+    },
+    {
+      id: 37,
+      type: 'multiple-answer',
+      question: 'What information should be surveyed about the source database? (Select all that apply)',
+      options: ['Source construction', 'Migration scope', 'Sharding scheme', 'Data volume', 'Marketing strategy'],
+      correct: [0, 1, 2, 3],
+      explanation: 'The survey should cover: Source construction, Migration scope, Sharding scheme, Data volume, Source database resource status, Future service growth, KPIs, and Other aspects.'
+    },
+    {
+      id: 38,
+      type: 'true-false',
+      question: 'In horizontal sharding, a sharded table has full data distributed across database shards of multiple MySQL instances.',
+      options: ['True', 'False'],
+      correct: [0],
+      explanation: 'True. In a sharded table, full data is split and distributed across database shards of multiple MySQL instances.'
+    },
+    {
+      id: 39,
+      type: 'multiple-choice',
+      question: 'For migrating NAS to Huawei Cloud SFS, which tools are mentioned for data migration?',
+      options: ['DRS only', 'rsync, rclone, or scp', 'OMS only', 'FTP only'],
+      correct: [1],
+      explanation: 'The document mentions using rsync, rclone, or scp to migrate and synchronize data between servers.'
+    },
+    {
+      id: 40,
+      type: 'multiple-answer',
+      question: 'What are the main advantages of using distributed architecture with sharding? (Select all that apply)',
+      options: ['Higher write performance', 'Shared-nothing architecture', 'Maximum IOPS higher than single storage', 'Lower storage costs', 'Simplified application code'],
+      correct: [0, 1, 2],
+      explanation: 'Distributed architecture provides higher write performance through shared-nothing architecture, and much higher maximum IOPS than single storage nodes.'
+    }
+  ];
+
+  const handleAnswerSelect = (answerIndex) => {
+    if (answered) return;
+
+    const question = questions[currentQuestion];
+    
+    if (question.type === 'multiple-answer') {
+      const newAnswers = selectedAnswers.includes(answerIndex)
+        ? selectedAnswers.filter(a => a !== answerIndex)
+        : [...selectedAnswers, answerIndex];
+      setSelectedAnswers(newAnswers);
+    } else {
+      setSelectedAnswers([answerIndex]);
+    }
+  };
+
+  const handleSubmitAnswer = () => {
+    if (selectedAnswers.length === 0) return;
+
+    const question = questions[currentQuestion];
+    const isCorrect = 
+      selectedAnswers.length === question.correct.length &&
+      selectedAnswers.every(ans => question.correct.includes(ans));
+
+    if (isCorrect) {
+      setScore(score + 1);
+    }
+
+    setResults([...results, {
+      question: question.question,
+      correct: isCorrect,
+      userAnswers: selectedAnswers,
+      correctAnswers: question.correct,
+      explanation: question.explanation
+    }]);
+
+    setAnswered(true);
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswers([]);
+      setAnswered(false);
+    } else {
+      setShowResult(true);
+    }
+  };
+
+  const handleRestart = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswers([]);
+    setShowResult(false);
+    setScore(0);
+    setAnswered(false);
+    setResults([]);
+  };
+
+  const getAnswerClass = (index) => {
+    if (!answered) {
+      return selectedAnswers.includes(index) 
+        ? 'bg-blue-100 border-blue-500' 
+        : 'bg-white hover:bg-gray-50';
+    }
+
+    const question = questions[currentQuestion];
+    const isCorrectAnswer = question.correct.includes(index);
+    const isSelected = selectedAnswers.includes(index);
+
+    if (isCorrectAnswer) {
+      return 'bg-green-100 border-green-500';
+    }
+    if (isSelected && !isCorrectAnswer) {
+      return 'bg-red-100 border-red-500';
+    }
+    return 'bg-white';
+  };
+
+  if (showResult) {
+    const percentage = ((score / questions.length) * 100).toFixed(1);
+    const passed = percentage >= 70;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8">
+          <div className="text-center mb-8">
+            <Award className={`w-24 h-24 mx-auto mb-4 ${passed ? 'text-green-500' : 'text-orange-500'}`} />
+            <h2 className="text-4xl font-bold text-gray-800 mb-2">Quiz Complete!</h2>
+            <p className="text-xl text-gray-600">
+              You scored <span className="font-bold text-indigo-600">{score}</span> out of {questions.length}
+            </p>
+            <p className="text-3xl font-bold mt-4" style={{color: passed ? '#10b981' : '#f59e0b'}}>
+              {percentage}%
+            </p>
+            <p className="text-lg mt-2 text-gray-600">
+              {passed ? '🎉 Congratulations! You passed!' : '📚 Keep studying! You need 70% to pass.'}
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Review Your Answers</h3>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {results.map((result, idx) => (
+                <div 
+                  key={idx} 
+                  className={`p-4 rounded-lg border-2 ${result.correct ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+                >
+                  <div className="flex items-start gap-3">
+                    {result.correct ? (
+                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                    ) : (
+                      <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 mb-2">Q{idx + 1}: {result.question}</p>
+                      <p className="text-sm text-gray-600 italic">{result.explanation}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleRestart}
+            className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-5 h-5" />
+            Retake Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const question = questions[currentQuestion];
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold text-indigo-600">
+                Question {currentQuestion + 1} of {questions.length}
+              </span>
+              <span className="text-sm font-semibold text-gray-600">
+                Score: {score}/{currentQuestion + (answered ? 1 : 0)}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Question Type Badge */}
+          <div className="mb-4">
+            <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
+              {question.type === 'true-false' ? 'TRUE/FALSE' : 
+               question.type === 'multiple-choice' ? 'MULTIPLE CHOICE' : 
+               'MULTIPLE ANSWERS'}
+            </span>
+          </div>
+
+          {/* Question */}
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            {question.question}
+          </h2>
+
+          {question.type === 'multiple-answer' && (
+            <p className="text-sm text-gray-600 mb-4 italic">
+              * Select all correct answers
+            </p>
+          )}
+
+          {/* Options */}
+          <div className="space-y-3 mb-6">
+            {question.options.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => handleAnswerSelect(index)}
+                disabled={answered}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${getAnswerClass(index)} ${
+                  !answered ? 'cursor-pointer' : 'cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    selectedAnswers.includes(index) ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'
+                  }`}>
+                    {selectedAnswers.includes(index) && (
+                      <div className="w-3 h-3 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <span className="font-medium text-gray-800">{option}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Explanation */}
+          {answered && (
+            <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+              <p className="font-semibold text-blue-900 mb-2">Explanation:</p>
+              <p className="text-blue-800">{question.explanation}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {!answered ? (
+              <button
+                onClick={handleSubmitAnswer}
+                disabled={selectedAnswers.length === 0}
+                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition ${
+                  selectedAnswers.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                Submit Answer
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition"
+              >
+                {currentQuestion < questions.length - 1 ? 'Next Question →' : 'View Results'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuizApp;

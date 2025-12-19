@@ -1,0 +1,495 @@
+import React, { useState } from 'react';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+
+const Quiz = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [showExplanation, setShowExplanation] = useState({});
+  const [score, setScore] = useState(0);
+
+  const questions = [
+    {
+      id: 1,
+      question: "How many phases and steps does the Cloud Migration Framework (CMF) have?",
+      type: "multiple-choice",
+      options: ["5 phases and 10 steps", "7 phases and 12 steps", "6 phases and 14 steps", "8 phases and 15 steps"],
+      correctAnswer: 1,
+      explanation: "The CMF consists of 7 phases and 12 steps, as stated in the module objectives and throughout the documentation."
+    },
+    {
+      id: 2,
+      question: "What are the three turns mentioned in the migration approach? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Turn mindset around", "Turn skills around", "Turn methods around", "Turn resources around"],
+      correctAnswers: [0, 1, 2],
+      explanation: "The three turns are: mindset (from transporter to architect), skills (comprehensive abilities), and methods (CMF methodology)."
+    },
+    {
+      id: 3,
+      question: "Cloud migration should be positioned as merely transporting workloads to the cloud.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The document emphasizes positioning as architects and visionaries, not just transporters. Migration should focus on customer value co-creation and transformation."
+    },
+    {
+      id: 4,
+      question: "What is the minimum number of parties that need to cooperate for a successful cloud migration?",
+      type: "multiple-choice",
+      options: ["2 parties", "3 parties (iron triangle)", "4 parties", "5 parties"],
+      correctAnswer: 1,
+      explanation: "The document mentions the 'iron triangle' team, emphasizing cooperation from multiple parties including leadership, technical teams, and execution teams."
+    },
+    {
+      id: 5,
+      question: "Which of the following are valid migration strategies mentioned in the 6 Rs? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Re-host", "Re-platform", "Re-architect (Refactor)", "Re-purchase", "Retain/Retire"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All five options are part of the 6 Rs migration strategies shown in the cloud enablement diagram."
+    },
+    {
+      id: 6,
+      question: "The knowledge cutoff date for reliable information in the context is January 2025.",
+      type: "true-false",
+      correctAnswer: true,
+      explanation: "True. The document explicitly states that Claude's reliable knowledge cutoff date is the end of January 2025."
+    },
+    {
+      id: 7,
+      question: "What is the first phase of the Cloud Migration Framework?",
+      type: "multiple-choice",
+      options: ["Planning", "Survey & Evaluation", "Architecture & Solution Design", "Migration"],
+      correctAnswer: 1,
+      explanation: "Survey & Evaluation is the first phase, which includes app status & requirement survey and app migration evaluation."
+    },
+    {
+      id: 8,
+      question: "Which tools are mentioned for application status survey? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["CMDB platform", "RDA tool", "Manual survey templates", "Configuration files", "Scripts"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All five methods are listed in the Application Status Survey Methods table, ranging from easy to hard difficulty."
+    },
+    {
+      id: 9,
+      question: "Pre-sales to service handover should only focus on technical solutions.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The handover should focus on overall project status, customer information, cloud migration solution, key contract content, AND risk items - not just technical solutions."
+    },
+    {
+      id: 10,
+      question: "What are the three layers in the 'Three Layers, Four Architectures, and Six Factors' methodology?",
+      type: "multiple-choice",
+      options: ["Application, Database, Network", "Business, Application, Infrastructure", "Frontend, Backend, Database", "Access, Compute, Storage"],
+      correctAnswer: 1,
+      explanation: "The three layers are: L0 Service Panorama (Business), L1 Application System, and L2 Application Component (Infrastructure resources)."
+    },
+    {
+      id: 11,
+      question: "Which of the following are key customer voices mentioned in the document? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Cost reduction", "Business agility", "System stability", "Data consistency", "Effort minimization"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All these are listed as 'Voices of customers' including cost reduction, business agility, business continuity, system stability, effort minimization, data consistency, and less architecture changes."
+    },
+    {
+      id: 12,
+      question: "A kickoff meeting can proceed successfully without customer leadership attendance.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The document explicitly states: 'Key stakeholders must be present at the kickoff meeting. Otherwise, the meeting will fail.' Customer leadership must attend."
+    },
+    {
+      id: 13,
+      question: "What is the recommended approach for migration batches?",
+      type: "multiple-choice",
+      options: ["Migrate everything at once", "Start with the most complex systems", "Start with components that are easy to migrate successfully", "Migrate randomly"],
+      correctAnswer: 2,
+      explanation: "The document advises: 'Start with components that are easy to be migrated successfully' and 'Do not migrate a large number of systems at a time.'"
+    },
+    {
+      id: 14,
+      question: "Which phases come after 'Survey & Evaluation' in the CMF? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Planning", "Architecture & Solution Design", "Environment Deployment & Test", "Migration"],
+      correctAnswers: [0, 1, 2, 3],
+      explanation: "After Survey & Evaluation, the phases are: Planning, Architecture & Solution Design, Environment Deployment & Test, Migration, Switchover, Verification, and Assurance & Handover."
+    },
+    {
+      id: 15,
+      question: "Risk levels in migration contracts only include High, Medium, and Low.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The Risk Authorization List includes four levels: Prohibited Once, Significant, High, Medium, and Low."
+    },
+    {
+      id: 16,
+      question: "What should be the focus when conducting a kickoff meeting?",
+      type: "multiple-choice",
+      options: ["Only technical details", "Only budget discussions", "Organizations, objectives, and responsibilities", "Only project timeline"],
+      correctAnswer: 2,
+      explanation: "The document states to 'Align Objectives, Organizations, and Responsibilities with the Customer in the Project Kickoff Meeting.'"
+    },
+    {
+      id: 17,
+      question: "Which of the following are part of the four architectures in the survey framework? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Business architecture", "Application architecture", "Technical architecture", "Data architecture"],
+      correctAnswers: [0, 1, 2, 3],
+      explanation: "The four architectures are: Business Architecture, Application Architecture, Technical Architecture, and Data Architecture (if Big-Data is in scope)."
+    },
+    {
+      id: 18,
+      question: "The RDA tool can obtain complete application invoking relationships.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The document states that RDA tool 'Only a small amount of information can be obtained for databases and middleware, and the application invoking relationship cannot be obtained.'"
+    },
+    {
+      id: 19,
+      question: "What are the six factors used for analysis in the survey methodology?",
+      type: "multiple-choice",
+      options: ["Cost, Speed, Security, Reliability, Performance, Scalability", "Availability, Performance, Security, Scalability, Reliability, Cost", "Network, Compute, Storage, Database, Security, Monitoring", "Planning, Design, Testing, Migration, Verification, Handover"],
+      correctAnswer: 1,
+      explanation: "The six factors mentioned are related to analyzing requirements: Availability, Performance, Security, Scalability, Reliability (including data dual-write, data audit), and Cost."
+    },
+    {
+      id: 20,
+      question: "Which survey methods are ranked from easy to hard? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Public information and documents", "Tools and direct system access", "Conversations and interviews", "Questionnaires"],
+      correctAnswers: [0, 1, 2],
+      explanation: "The survey map shows progression from Easy (public media, documents) to Medium (tools, system access) to Hard (conversations, dialog with stakeholders)."
+    },
+    {
+      id: 21,
+      question: "POC environment testing can only verify functional requirements.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. POC testing can verify dependencies between applications by 'starting or stopping an application' to 'accurately observe the dependency between the application and peripheral applications.'"
+    },
+    {
+      id: 22,
+      question: "What is the purpose of the Platform Readiness Assessment?",
+      type: "multiple-choice",
+      options: ["Only to check if services are available", "To facilitate business case study for production workload migration", "Only to verify security compliance", "Only to analyze costs"],
+      correctAnswer: 1,
+      explanation: "The Platform Readiness Assessment helps 'facilitate Business case' when large-scale enterprise customers migrate production workloads, covering services mapping, architecture design, and BOM delivery."
+    },
+    {
+      id: 23,
+      question: "Which perspectives are evaluated in Platform Readiness Assessment? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Business", "Infrastructure Services", "Networking", "Security Control", "DR & Backup"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All eight perspectives are evaluated: Business, Infrastructure Services, Networking, Storage, Monitoring, Logging, Security Control, and DR & Backup."
+    },
+    {
+      id: 24,
+      question: "Cloud migration should always aim for zero downtime regardless of system architecture.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. The document advises to 'Check whether the customer's system architecture meets the zero downtime requirement' and communicate about reconstruction workload if needed."
+    },
+    {
+      id: 25,
+      question: "What are the three main migration roadmap approaches?",
+      type: "multiple-choice",
+      options: ["Fast, Medium, Slow migration", "Overall migration, Replacement with hosting service, Cloud native reconstruction", "Partial, Complete, Phased migration", "Simple, Complex, Hybrid migration"],
+      correctAnswer: 1,
+      explanation: "The Overall Migration Roadmap shows three approaches: Overall migration (retain architecture), Replacement with hosting service, and Cloud native reconstruction."
+    },
+    {
+      id: 26,
+      question: "Which activities are part of the pre-sales to service handover checklist? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Project information handover", "Customer information handover", "Solution handover", "Contract content handover", "Risk handover"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All five activities are essential parts of the handover checklist to ensure smooth transition from pre-sales to delivery teams."
+    },
+    {
+      id: 27,
+      question: "Manual survey templates are the most efficient method for obtaining resource information.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. Manual templates have disadvantages: 'The survey period is uncontrollable' and 'The accuracy and integrity of the obtained information is uncontrollable.' CMDB and RDA tools are more efficient."
+    },
+    {
+      id: 28,
+      question: "What is the primary purpose of association analysis in migration?",
+      type: "multiple-choice",
+      options: ["To reduce costs", "To identify dependencies for batch migration and system integration", "To improve performance", "To enhance security"],
+      correctAnswer: 1,
+      explanation: "Association analysis is 'required mainly for batch migration, partial migration (only some services are migrated), and system integration verification' to understand dependencies."
+    },
+    {
+      id: 29,
+      question: "Which types of dependencies should be analyzed? (Select all that apply)",
+      type: "multiple-answer",
+      options: ["Communication dependency between applications", "Shared data dependency", "Subsystem dependency", "Database dependency", "MQ dependency"],
+      correctAnswers: [0, 1, 2, 3, 4],
+      explanation: "All these dependency types are shown in the Association Analysis flowchart, including communication, shared data, subsystem, database, MQ, and DTS real-time synchronization."
+    },
+    {
+      id: 30,
+      question: "Cloud service satisfaction evaluation only needs to consider functionality.",
+      type: "true-false",
+      correctAnswer: false,
+      explanation: "False. Cloud service satisfaction evaluation must consider multiple dimensions: Functionality, Performance, Availability, and Resources (as shown in the Cloud Readiness Analysis)."
+    }
+  ];
+
+  const handleAnswer = (questionIndex, answerIndex) => {
+    const question = questions[questionIndex];
+    
+    if (question.type === 'multiple-answer') {
+      const currentAnswers = selectedAnswers[questionIndex] || [];
+      const newAnswers = currentAnswers.includes(answerIndex)
+        ? currentAnswers.filter(a => a !== answerIndex)
+        : [...currentAnswers, answerIndex];
+      
+      setSelectedAnswers({
+        ...selectedAnswers,
+        [questionIndex]: newAnswers
+      });
+    } else {
+      setSelectedAnswers({
+        ...selectedAnswers,
+        [questionIndex]: answerIndex
+      });
+    }
+  };
+
+  const checkAnswer = (questionIndex) => {
+    const question = questions[questionIndex];
+    const userAnswer = selectedAnswers[questionIndex];
+
+    if (userAnswer === undefined || (Array.isArray(userAnswer) && userAnswer.length === 0)) {
+      return null;
+    }
+
+    let isCorrect = false;
+
+    if (question.type === 'multiple-answer') {
+      const sortedUser = [...userAnswer].sort();
+      const sortedCorrect = [...question.correctAnswers].sort();
+      isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+    } else if (question.type === 'true-false') {
+      isCorrect = userAnswer === question.correctAnswer;
+    } else {
+      isCorrect = userAnswer === question.correctAnswer;
+    }
+
+    if (!showExplanation[questionIndex] && isCorrect) {
+      setScore(score + 1);
+    }
+
+    setShowExplanation({
+      ...showExplanation,
+      [questionIndex]: true
+    });
+
+    return isCorrect;
+  };
+
+  const renderQuestion = (question, index) => {
+    const isAnswered = showExplanation[index];
+    const userAnswer = selectedAnswers[index];
+    const isCorrect = isAnswered ? checkAnswerSilent(index) : null;
+
+    return (
+      <div key={question.id} className="mb-8 p-6 bg-white rounded-lg shadow-md">
+        <div className="flex items-start gap-3 mb-4">
+          <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+            {question.id}
+          </span>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-800">{question.question}</h3>
+            <span className="text-sm text-gray-500 mt-1 inline-block">
+              {question.type === 'multiple-answer' && '(Select all that apply)'}
+              {question.type === 'true-false' && '(True or False)'}
+              {question.type === 'multiple-choice' && '(Single choice)'}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3 ml-11">
+          {question.type === 'true-false' ? (
+            <>
+              {[true, false].map((option, idx) => (
+                <label
+                  key={idx}
+                  className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    userAnswer === option
+                      ? isAnswered
+                        ? isCorrect
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-red-500 bg-red-50'
+                        : 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={`question-${index}`}
+                    checked={userAnswer === option}
+                    onChange={() => handleAnswer(index, option)}
+                    disabled={isAnswered}
+                    className="mr-3"
+                  />
+                  <span className="font-medium">{option ? 'True' : 'False'}</span>
+                </label>
+              ))}
+            </>
+          ) : (
+            question.options.map((option, optionIndex) => (
+              <label
+                key={optionIndex}
+                className={`flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                  question.type === 'multiple-answer'
+                    ? (userAnswer || []).includes(optionIndex)
+                      ? isAnswered
+                        ? question.correctAnswers.includes(optionIndex)
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-red-500 bg-red-50'
+                        : 'border-blue-500 bg-blue-50'
+                      : isAnswered && question.correctAnswers.includes(optionIndex)
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                    : userAnswer === optionIndex
+                    ? isAnswered
+                      ? isCorrect
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-red-500 bg-red-50'
+                      : 'border-blue-500 bg-blue-50'
+                    : isAnswered && optionIndex === question.correctAnswer
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type={question.type === 'multiple-answer' ? 'checkbox' : 'radio'}
+                  name={`question-${index}`}
+                  checked={
+                    question.type === 'multiple-answer'
+                      ? (userAnswer || []).includes(optionIndex)
+                      : userAnswer === optionIndex
+                  }
+                  onChange={() => handleAnswer(index, optionIndex)}
+                  disabled={isAnswered}
+                  className="mr-3"
+                />
+                <span>{option}</span>
+              </label>
+            ))
+          )}
+        </div>
+
+        {!isAnswered && userAnswer !== undefined && (question.type !== 'multiple-answer' || userAnswer.length > 0) && (
+          <button
+            onClick={() => checkAnswer(index)}
+            className="ml-11 mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Check Answer
+          </button>
+        )}
+
+        {isAnswered && (
+          <div className={`ml-11 mt-4 p-4 rounded-lg ${isCorrect ? 'bg-green-100 border-2 border-green-500' : 'bg-red-100 border-2 border-red-500'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {isCorrect ? (
+                <>
+                  <CheckCircle className="text-green-600" size={20} />
+                  <span className="font-bold text-green-800">Correct!</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="text-red-600" size={20} />
+                  <span className="font-bold text-red-800">Incorrect</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-start gap-2">
+              <AlertCircle className="text-gray-600 flex-shrink-0 mt-1" size={16} />
+              <p className="text-gray-700 text-sm">{question.explanation}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const checkAnswerSilent = (questionIndex) => {
+    const question = questions[questionIndex];
+    const userAnswer = selectedAnswers[questionIndex];
+
+    if (userAnswer === undefined) return null;
+
+    if (question.type === 'multiple-answer') {
+      const sortedUser = [...userAnswer].sort();
+      const sortedCorrect = [...question.correctAnswers].sort();
+      return JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+    } else if (question.type === 'true-false') {
+      return userAnswer === question.correctAnswer;
+    } else {
+      return userAnswer === question.correctAnswer;
+    }
+  };
+
+  const calculateScore = () => {
+    let correctCount = 0;
+    questions.forEach((_, index) => {
+      if (showExplanation[index] && checkAnswerSilent(index)) {
+        correctCount++;
+      }
+    });
+    return correctCount;
+  };
+
+  const totalAnswered = Object.keys(showExplanation).length;
+  const currentScore = calculateScore();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Huawei Cloud Migration Quiz
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Test your knowledge on Migration Policy, Process, and Requirement Survey
+          </p>
+          <div className="flex gap-4 text-sm">
+            <div className="px-4 py-2 bg-blue-100 rounded-lg">
+              <span className="font-semibold text-blue-800">Questions Answered: </span>
+              <span className="text-blue-600">{totalAnswered} / {questions.length}</span>
+            </div>
+            <div className="px-4 py-2 bg-green-100 rounded-lg">
+              <span className="font-semibold text-green-800">Score: </span>
+              <span className="text-green-600">{currentScore} / {totalAnswered}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {questions.map((question, index) => renderQuestion(question, index))}
+        </div>
+
+        {totalAnswered === questions.length && (
+          <div className="bg-white rounded-xl shadow-lg p-8 mt-6 text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Quiz Complete! 🎉</h2>
+            <p className="text-xl mb-2">
+              Your Final Score: <span className="font-bold text-blue-600">{currentScore} / {questions.length}</span>
+            </p>
+            <p className="text-gray-600">
+              ({((currentScore / questions.length) * 100).toFixed(1)}%)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Quiz;

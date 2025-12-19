@@ -1,0 +1,308 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Design System Colors - Professional Enterprise Palette */
+:root {
+  /* Primary Brand Colors */
+  --color-primary: #2563eb;
+  --color-primary-dark: #1e40af;
+  --color-primary-light: #3b82f6;
+  
+  /* Dark Neutrals */
+  --color-slate-900: #0f172a;
+  
+  /* Body Text */
+  --color-slate-700: #334155;
+  
+  /* Semantic Colors - Used Sparingly */
+  --color-success: #16a34a;
+  --color-warning: #ea580c;
+  --color-danger: #dc2626;
+  
+  /* Light Neutrals */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  
+  /* App Background - Crisp light grey to prevent glare */
+  --color-app-bg: #f1f5f9;
+  
+  /* Card Background */
+  --color-card-bg: #ffffff;
+}
+
+/* Professional Mesh Gradient Background for Login */
+@keyframes meshGradientShift {
+  0%, 100% {
+    background-position: 0% 0%, 100% 0%, 50% 50%;
+  }
+  33% {
+    background-position: 0% 100%, 100% 0%, 50% 50%;
+  }
+  66% {
+    background-position: 100% 100%, 0% 100%, 50% 50%;
+  }
+}
+
+.mesh-gradient {
+  background: linear-gradient(135deg, #0f172a 0%, #1e40af 25%, #2563eb 50%);
+  position: relative;
+  overflow: hidden;
+}
+
+.mesh-gradient::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.3) 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.mesh-gradient::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(30, 64, 175, 0.3) 0%, transparent 70%);
+  bottom: -100px;
+  right: -100px;
+  animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -30px);
+  }
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-in-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-in-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Transitions */
+@layer components {
+  .smooth-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  .focus-ring {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  .error-ring {
+    @apply outline-none ring-2 ring-red-500 ring-offset-2;
+  }
+  
+  /* Professional card styling */
+  .card-elevated {
+    @apply shadow-md hover:shadow-lg transition-shadow duration-200;
+  }
+  
+  .card-subtle {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  /* Action card for dashboard */
+  .action-card {
+    @apply bg-white border border-slate-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer;
+  }
+  
+  /* Professional input field styling */
+  .input-field {
+    @apply w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 text-sm font-medium placeholder-slate-400 transition-all duration-200;
+  }
+  
+  .input-field:focus {
+    @apply outline-none bg-white border-blue-500 ring-2 ring-blue-200;
+  }
+}
+
+/* Text selection */
+::selection {
+  background-color: #2563eb;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #2563eb;
+  color: white;
+}
+
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Reset & Typography */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #F8FAFC; /* Slate 50 */
+  color: #0F172A; /* Slate 900 */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Utilities for that "Polished" look */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Scrollbar Styling for Sidebar */
+aside::-webkit-scrollbar {
+  width: 5px;
+}
+aside::-webkit-scrollbar-track {
+  background: transparent;
+}
+aside::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 10px;
+}
+aside::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Button & Interactive Element Transitions */
+button, a {
+  transition-property: color, background-color, border-color, transform, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading Spinner Animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Fix dropdown option visibility */
+select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  padding: 8px !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}

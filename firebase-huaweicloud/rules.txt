@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+match /database / database {document/};
+if user !=null {
+    allow read, write;
+}
+match users / users {document/};
+allow read if userID != null;
+allow write if userID != null;
+match quizAttempts / quizAttempts {document/};
+allow read if userID != null;
+allow write if userID != null;
+match quizStats / quizStats {document/};
+allow read if userID != null;
+allow write if userID != null;
+(
+
+)           
+
+}
+
+

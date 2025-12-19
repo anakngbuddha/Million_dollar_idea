@@ -1,0 +1,564 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  SafeAreaView,
+  Modal,
+  PermissionsAndroid,
+} from 'react-native';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+const API_KEY = 'AIzaSyC0bQdrtFTaQeWj9N5Z7V--HJkuiCjfPUU';
+
+const Chatbot = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+  const flatListRef = useRef();
+
+  let genAI;
+  try {
+    genAI = new GoogleGenerativeAI(API_KEY);
+  } catch (error) {
+    console.error('Invalid API Key:', error);
+    Alert.alert('API Key Error', 'Please provide a valid Google AI API key');
+  }
+
+  const welcomeMessage = {
+    role: 'assistant',
+    content: "Hi! I'm Zel, your AI assistant. How can I help you today? 😊"
+  };
+
+  useEffect(() => {
+    loadChatHistory();
+    requestLocationPermission();
+    if (isVisible) {
+      setMessages([welcomeMessage]);
+    }
+  }, [isVisible]);
+
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        const auth = await navigator.geolocation.requestAuthorization();
+        if (auth === 'granted') {
+          getLocation();
+        }
+      } else {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'Zel needs access to your location to provide local recommendations.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getLocation();
+        }
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+
+  const getLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      error => {
+        console.error(error);
+        Alert.alert('Error', 'Unable to get location');
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  };
+
+
+  const loadChatHistory = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('all_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setChatHistory(parsed);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  };
+
+  const saveToHistory = async () => {
+    if (messages.length <= 1) return; // Don't save if only welcome message
+    
+    try {
+      const timestamp = new Date().toISOString();
+      const newChat = {
+        id: timestamp,
+        messages: messages,
+        date: new Date().toLocaleDateString()
+      };
+      
+      const currentHistory = await AsyncStorage.getItem('all_chat_history');
+      let updatedHistory = [];
+      
+      if (currentHistory) {
+        updatedHistory = [newChat, ...JSON.parse(currentHistory)];
+      } else {
+        updatedHistory = [newChat];
+      }
+      
+      await AsyncStorage.setItem('all_chat_history', JSON.stringify(updatedHistory));
+      setChatHistory(updatedHistory);
+    } catch (error) {
+      console.error('Error saving to history:', error);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      await AsyncStorage.removeItem('all_chat_history');
+      setChatHistory([]);
+      Alert.alert('Success', 'Chat history cleared successfully');
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      Alert.alert('Error', 'Failed to clear chat history');
+    }
+  };
+
+  const handleClose = async () => {
+    await saveToHistory();
+    setIsVisible(false);
+    setMessages([]);
+  };
+
+  const handleOpen = () => {
+    setIsVisible(true);
+    setMessages([welcomeMessage]);
+  };
+
+  const loadChatFromHistory = (chat) => {
+    setMessages(chat.messages);
+    setShowHistory(false);
+  };
+
+  const sendMessage = async () => {
+    if (inputText.trim() === '') return;
+    if (!genAI) {
+      Alert.alert('Error', 'Invalid API configuration');
+      return;
+    }
+
+    const userMessage = {
+      role: 'user',
+      content: inputText.trim(),
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInputText('');
+    setIsLoading(true);
+
+    try {
+      // Check if message contains location-related keywords
+      const locationKeywords = ['restaurant', 'food', 'place', 'near', 'around', 'nearby'];
+      const isLocationRequest = locationKeywords.some(keyword => 
+        inputText.toLowerCase().includes(keyword)
+      );
+
+      let promptText = inputText;
+      if (isLocationRequest && userLocation) {
+        promptText = `${inputText} (User's current location: Latitude ${userLocation.latitude}, Longitude ${userLocation.longitude}. Please provide recommendations based on this location.)`;
+      }
+
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(promptText);
+      const response = await result.response;
+      const text = response.text();
+
+      const aiMessage = {
+        role: 'assistant',
+        content: text,
+      };
+
+      const finalMessages = [...updatedMessages, aiMessage];
+      setMessages(finalMessages);
+    } catch (error) {
+      console.error('Error:', error);
+      
+      if (error.message.includes('API_KEY_INVALID')) {
+        Alert.alert('API Key Error', 'The provided API key is invalid. Please check your key.');
+      } else {
+        Alert.alert('Error', 'Failed to get response from AI. Please try again.');
+      }
+
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      setMessages([...updatedMessages, errorMessage]);
+    }
+
+    setIsLoading(false);
+  };
+
+  const renderMessage = ({ item }) => (
+    <View
+      style={[
+        styles.messageBubble,
+        item.role === 'user' ? styles.userBubble : styles.aiBubble,
+      ]}>
+      <Text style={[
+        styles.messageText,
+        item.role === 'user' ? styles.userText : styles.aiText,
+      ]}>
+        {item.content}
+      </Text>
+    </View>
+  );
+
+  if (!isVisible) {
+    return (
+      <TouchableOpacity style={styles.openButton} onPress={handleOpen}>
+        <Text style={styles.openButtonText}>Open Chat</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Chat with Zel</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.historyButton} 
+            onPress={() => setShowHistory(true)}
+          >
+            <Text style={styles.historyButtonText}>History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={handleClose}
+          >
+            <Text style={styles.closeButtonText}>×</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.chatContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(_, index) => index.toString()}
+          style={styles.messageList}
+          contentContainerStyle={styles.messageListContent}
+          onContentSizeChange={() => {
+            if (messages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
+          onLayout={() => {
+            if (messages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
+          showsVerticalScrollIndicator={true}
+        />
+      </View>
+
+      <Modal
+        visible={showHistory}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowHistory(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderText}>Chat History</Text>
+              <View style={styles.modalHeaderButtons}>
+                <TouchableOpacity 
+                  onPress={clearHistory}
+                  style={styles.clearHistoryButton}
+                >
+                  <Text style={styles.clearHistoryButtonText}>Clear All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => setShowHistory(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Text style={styles.modalCloseButtonText}>×</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {chatHistory.length === 0 ? (
+              <Text style={styles.noHistoryText}>No chat history available</Text>
+            ) : (
+              <FlatList
+                data={chatHistory}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={styles.historyItem}
+                    onPress={() => loadChatFromHistory(item)}
+                  >
+                    <Text style={styles.historyDate}>{item.date}</Text>
+                    <Text style={styles.historyPreview}>
+                      {item.messages[1]?.content.substring(0, 50)}...
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        style={styles.inputWrapper}
+      >
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Message Zel..."
+            multiline
+            maxHeight={100}
+            placeholderTextColor="#666"
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, isLoading && styles.sendButtonDisabled]}
+            onPress={sendMessage}
+            disabled={isLoading}
+          >
+            <Text style={styles.sendButtonText}>
+              {isLoading ? 'Sending...' : 'Send'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F2F5',
+  },
+  header: {
+    padding: 12,
+    backgroundColor: '#1A73E8',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  historyButton: {
+    marginRight: 10,
+    padding: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+  },
+  historyButtonText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  openButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#1A73E8',
+    padding: 15,
+    borderRadius: 30,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  openButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  modalHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalHeaderText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  clearHistoryButton: {
+    marginRight: 15,
+    padding: 6,
+    backgroundColor: '#dc3545',
+    borderRadius: 4,
+  },
+  clearHistoryButtonText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  modalCloseButtonText: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  historyItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8EAED',
+  },
+  historyDate: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  historyPreview: {
+    fontSize: 16,
+    color: '#202124',
+  },
+  chatContainer: {
+    flex: 1,
+  },
+  messageList: {
+    flex: 1,
+  },
+  messageListContent: {
+    padding: 16,
+    paddingBottom: 16,
+  },
+  inputWrapper: {
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#E8EAED',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: 'white',
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    padding: 14,
+    borderRadius: 20,
+    marginVertical: 6,
+  },
+  userBubble: {
+    backgroundColor: '#1A73E8',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    backgroundColor: 'white',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userText: {
+    color: 'white',
+  },
+  aiText: {
+    color: '#202124',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginRight: 10,
+    maxHeight: 100,
+    color: '#202124',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E8EAED',
+  },
+  sendButton: {
+    backgroundColor: '#1A73E8',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#BDC1C6',
+  },
+  sendButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
+
+export default Chatbot;
