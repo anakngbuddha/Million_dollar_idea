@@ -13,7 +13,7 @@ import {
 import { db } from '../config/firebase';
 
 export type QuestionType = 'multiple-choice' | 'multiple-answer' | 'true-false' | 'fill-in-blank';
-export type QuizVisibility = 'private' | 'public' | 'shared';
+export type QuizVisibility = 'private' | 'public' | 'shared' | 'classroom';
 
 export interface QuizQuestion {
   id: string;
@@ -32,6 +32,7 @@ export interface CustomQuiz {
   description: string;
   creatorId: string;
   creatorName: string;
+  authorId?: string; // Alternative author field for compatibility (used when created through classroom)
   questions: QuizQuestion[];
   visibility: QuizVisibility;
   sharedWith?: string[];
@@ -40,6 +41,12 @@ export interface CustomQuiz {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   tags?: string[];
+  // For classroom-shareable quizzes
+  isClassroomShareable?: boolean;
+  classroomId?: string; // The classroom this quiz is assigned to (if classroom-shareable)
+  // Attempt restrictions
+  attemptRestriction?: 'unlimited' | 'once' | 'limited'; // unlimited, once, or limited number
+  attemptLimit?: number; // Number of attempts if restriction is 'limited'
 }
 
 export interface QuizAttempt {
@@ -453,5 +460,76 @@ export const getSharedCustomQuizzes = async (userId: string): Promise<CustomQuiz
   } catch (error) {
     console.error('[quizService] Error fetching shared custom quizzes:', error);
     return [];
+  }
+};
+
+/**
+ * Get all attempts for a specific quiz (all users)
+ */
+export const getAllQuizAttempts = async (quizId: string): Promise<QuizAttempt[]> => {
+  try {
+    const q = query(
+      collection(db, 'quizAttempts'),
+      where('quizId', '==', quizId)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const attempts: QuizAttempt[] = [];
+
+    querySnapshot.forEach((doc) => {
+      attempts.push({
+        ...doc.data(),
+        completedAt: doc.data().completedAt,
+      } as QuizAttempt);
+    });
+
+    // Sort by completion time descending
+    attempts.sort((a, b) => {
+      const aTime = a.completedAt.toMillis ? a.completedAt.toMillis() : (a.completedAt instanceof Date ? a.completedAt.getTime() : 0);
+      const bTime = b.completedAt.toMillis ? b.completedAt.toMillis() : (b.completedAt instanceof Date ? b.completedAt.getTime() : 0);
+      return bTime - aTime;
+    });
+
+    return attempts;
+  } catch (error) {
+    console.error('[quizService] Error fetching quiz attempts:', error);
+    return [];
+  }
+};
+
+/**
+ * Get user profile by ID (name, email, etc.)
+ */
+export const getUserProfile = async (userId: string) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('[quizService] Error fetching user profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Get multiple user profiles
+ */
+export const getUserProfiles = async (userIds: string[]) => {
+  try {
+    const profiles: { [key: string]: any } = {};
+    
+    for (const userId of userIds) {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        profiles[userId] = userDoc.data();
+      }
+    }
+    
+    return profiles;
+  } catch (error) {
+    console.error('[quizService] Error fetching user profiles:', error);
+    return {};
   }
 };

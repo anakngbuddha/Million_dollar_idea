@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AppLayout } from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
 import type { Post } from '../services/communityService';
 import { 
   getPostById, 
@@ -25,6 +24,7 @@ import {
   Save,
   ArrowLeft,
   Plus,
+  X,
 } from 'lucide-react';
 import '../styles/DashboardPage.css';
 import './PostDetailPage.css';
@@ -33,7 +33,6 @@ const PostDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { postId } = useParams<{ postId: string }>();
   const { user, loading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -203,14 +202,11 @@ const PostDetailPage: React.FC = () => {
   }
 
   return (
+    <AppLayout>
     <div className="dashboard-container">
-      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
       <div className="dashboard-layout">
-        <Sidebar isOpen={sidebarOpen} />
-
         {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           {/* Back Button */}
           <button 
             className="back-button"
@@ -412,6 +408,7 @@ const PostDetailPage: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
 

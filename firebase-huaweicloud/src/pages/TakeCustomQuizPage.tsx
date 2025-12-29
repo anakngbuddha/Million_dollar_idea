@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AppLayout } from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { QuizViolationNotification } from '../components/QuizViolationNotification';
+import { useQuizProtection } from '../hooks/useQuizProtection';
 import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ArrowLeft,
   Clock,
 } from 'lucide-react';
 import { getCustomQuiz, saveQuizResult } from '../services/quizService';
@@ -18,9 +18,9 @@ export const TakeCustomQuizPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const quizContainerRef = useRef<HTMLDivElement>(null);
   const [quiz, setQuiz] = useState<CustomQuiz | null>(null);
   const [loadingQuiz, setLoadingQuiz] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number | number[] | boolean | string }>({});
@@ -29,6 +29,27 @@ export const TakeCustomQuizPage: React.FC = () => {
   const [timeStarted, setTimeStarted] = useState<number | null>(null);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isSavingResults, setIsSavingResults] = useState(false);
+
+  const { state: protectionState, showNotification, requestFullscreen, setQuizActive } = useQuizProtection(quizContainerRef, {
+    maxViolations: 5,
+    onViolation: (count) => {
+      console.log(`Quiz violation detected: ${count}`);
+    },
+    onAutoSubmit: () => {
+      console.log('Auto-submitting quiz due to violations');
+      handleCompleteQuiz();
+    },
+    enabled: quizStarted && !quizCompleted,
+  });
+
+  useEffect(() => {
+    if (quizStarted && !quizCompleted) {
+      setQuizActive(true);
+      requestFullscreen();
+    } else {
+      setQuizActive(false);
+    }
+  }, [quizStarted, quizCompleted, requestFullscreen, setQuizActive]);
 
   useEffect(() => {
     if (quizId && user) {
@@ -69,18 +90,6 @@ export const TakeCustomQuizPage: React.FC = () => {
       navigate('/my-quizzes');
     } finally {
       setLoadingQuiz(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
     }
   };
 
@@ -209,21 +218,12 @@ export const TakeCustomQuizPage: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const allAnswered = quiz ? Object.keys(showExplanation).length === quiz.questions.length : false;
   const currentScore = quiz
     ? Object.keys(showExplanation).reduce((acc, key) => {
         return acc + (checkAnswerSilent(parseInt(key)) ? quiz.questions[parseInt(key)].points : 0);
       }, 0)
     : 0;
   const maxScore = quiz ? quiz.questions.reduce((sum, q) => sum + q.points, 0) : 0;
-
-  const navigationItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard', active: false },
-    { icon: BookOpen, label: 'My Quizzes', href: '/my-quizzes', active: true },
-    { icon: BarChart4, label: 'Performance', href: '/analytics', active: false },
-    { icon: Users, label: 'Community', href: '/community', active: false },
-    { icon: Settings, label: 'Settings', href: '#', active: false },
-  ];
 
   if (loading || loadingQuiz) {
     return (
@@ -252,79 +252,10 @@ export const TakeCustomQuizPage: React.FC = () => {
   }
 
   return (
+    <AppLayout hideNavigation={protectionState.isQuizActive}>
     <div className="dashboard-container">
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <button className="menu-toggle" onClick={() => navigate('/my-quizzes')} style={{ marginLeft: '8px' }}>
-              <ArrowLeft size={20} />
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="search-bar">
-              <Search size={16} className="search-icon" />
-              <input type="text" placeholder="Search quizzes..." />
-            </div>
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">{user.displayName || user.email?.split('@')[0]}</div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div className="profile-avatar" onMouseEnter={() => setDropdownOpen(true)} onMouseLeave={() => setDropdownOpen(false)}>
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="profile-avatar-image" />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>{(user.email?.[0] || 'U').toUpperCase()}</span>
-                )}
-
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button onClick={handleLogout} disabled={logoutLoading} className="dropdown-item danger">
-                        <LogOut size={14} />
-                        {logoutLoading ? 'Logging out...' : 'Logout'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            {navigationItems.map((item) => (
-              <a key={item.label} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">Review explanations to strengthen your knowledge!</div>
-            </div>
-          </div>
-        </aside>
-
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           {!quizStarted ? (
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
               <div
@@ -415,7 +346,13 @@ export const TakeCustomQuizPage: React.FC = () => {
               </div>
             </div>
           ) : !quizCompleted ? (
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
+            <div ref={quizContainerRef} style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
+              <QuizViolationNotification
+                show={showNotification}
+                message={protectionState.warningMessage}
+                violations={protectionState.violations}
+                maxViolations={5}
+              />
               <div
                 style={{
                   backgroundColor: 'rgba(22, 33, 62, 0.8)',
@@ -723,7 +660,7 @@ export const TakeCustomQuizPage: React.FC = () => {
                       ← Previous
                     </button>
 
-                    {currentQuestion === quiz.questions.length - 1 && allAnswered ? (
+                    {currentQuestion === quiz.questions.length - 1 && selectedAnswers[currentQuestion] !== undefined ? (
                       <button
                         onClick={handleCompleteQuiz}
                         disabled={isSavingResults}
@@ -815,10 +752,10 @@ export const TakeCustomQuizPage: React.FC = () => {
                 </div>
                 <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--color-text-primary)', marginBottom: '20px' }}>Quiz Complete!</h2>
                 <div style={{ fontSize: '56px', fontWeight: 'bold', color: 'var(--color-accent-light)', marginBottom: '10px' }}>
-                  {currentScore} / {maxScore}
+                  {quiz ? quiz.questions.reduce((sum, q, idx) => sum + (checkAnswerSilent(idx) ? q.points : 0), 0) : 0} / {maxScore}
                 </div>
                 <p style={{ fontSize: '20px', color: 'var(--color-text-secondary)', marginBottom: '10px' }}>
-                  ({((currentScore / maxScore) * 100).toFixed(1)}%)
+                  ({quiz ? (((quiz.questions.reduce((sum, q, idx) => sum + (checkAnswerSilent(idx) ? q.points : 0), 0) / maxScore) * 100)).toFixed(1) : '0'}%)
                 </p>
                 <p
                   style={{
@@ -878,5 +815,6 @@ export const TakeCustomQuizPage: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };

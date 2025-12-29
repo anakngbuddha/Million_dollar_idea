@@ -249,6 +249,8 @@
 
 /* Sidebar */
 .sidebar {
+  display: flex;
+  flex-direction: column;
   position: fixed;
   left: 0;
   top: 70px;

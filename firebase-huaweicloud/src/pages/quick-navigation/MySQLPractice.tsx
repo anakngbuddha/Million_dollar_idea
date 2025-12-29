@@ -1,21 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
+
 import {
-  ArrowLeft,
-  Code2,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  User,
   ChevronRight,
   CheckCircle,
   AlertCircle,
   Lightbulb,
   Copy,
   Play,
+  Code
 } from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
@@ -30,7 +25,8 @@ interface MySQLExercise {
   category: string;
 }
 
-const mysqlExercises: MySQLExercise[] = [
+// TODO: Use mysqlExercises array to populate exercise list
+const _mysqlExercises: MySQLExercise[] = [
   {
     id: 1,
     title: 'Create Your First Table',
@@ -44,8 +40,7 @@ const mysqlExercises: MySQLExercise[] = [
       'PRIMARY KEY constraint is needed for id',
       'Use AUTO_INCREMENT for auto-generating IDs',
       'VARCHAR is for variable-length strings'
-    ],
-  },
+    ]},
   {
     id: 2,
     title: 'Insert Data into Table',
@@ -59,8 +54,7 @@ const mysqlExercises: MySQLExercise[] = [
       'Specify columns if not inserting all',
       'String values must be wrapped in single quotes',
       'You don\'t need to specify id as it auto-increments'
-    ],
-  },
+    ]},
   {
     id: 3,
     title: 'Select All Records',
@@ -74,8 +68,7 @@ const mysqlExercises: MySQLExercise[] = [
       '* means all columns',
       'FROM specifies the table',
       'Always end with semicolon'
-    ],
-  },
+    ]},
   {
     id: 4,
     title: 'Select Specific Columns',
@@ -89,8 +82,7 @@ const mysqlExercises: MySQLExercise[] = [
       'You don\'t need to specify the * wildcard',
       'FROM indicates the source table',
       'This reduces data transfer and improves performance'
-    ],
-  },
+    ]},
   {
     id: 5,
     title: 'Filter with WHERE',
@@ -104,8 +96,7 @@ const mysqlExercises: MySQLExercise[] = [
       'Use comparison operators: >, <, =, !=, >=, <=',
       'Only matching records are returned',
       'Multiple conditions can be combined with AND/OR'
-    ],
-  },
+    ]},
   {
     id: 6,
     title: 'Update Records',
@@ -119,8 +110,7 @@ const mysqlExercises: MySQLExercise[] = [
       'SET specifies which columns to update',
       'WHERE clause is CRITICAL to avoid updating all records',
       'Always use WHERE unless you want to update everything'
-    ],
-  },
+    ]},
   {
     id: 7,
     title: 'Delete Records',
@@ -134,8 +124,7 @@ const mysqlExercises: MySQLExercise[] = [
       'WHERE clause specifies which records to delete',
       'Without WHERE, ALL records are deleted',
       'Be very careful with DELETE operations!'
-    ],
-  },
+    ]},
   {
     id: 8,
     title: 'Add a Column',
@@ -149,8 +138,7 @@ const mysqlExercises: MySQLExercise[] = [
       'ADD COLUMN adds a new column',
       'Specify data type for the new column',
       'You can add multiple columns in one statement'
-    ],
-  },
+    ]},
   {
     id: 9,
     title: 'Sort Results',
@@ -164,8 +152,7 @@ const mysqlExercises: MySQLExercise[] = [
       'ASC = ascending (A to Z), DESC = descending (Z to A)',
       'Default is ASC if not specified',
       'Can order by multiple columns'
-    ],
-  },
+    ]},
   {
     id: 10,
     title: 'Limit Results',
@@ -179,8 +166,7 @@ const mysqlExercises: MySQLExercise[] = [
       'Useful for pagination',
       'Can be combined with ORDER BY',
       'LIMIT 5 OFFSET 10 skips first 10 rows'
-    ],
-  },
+    ]},
   {
     id: 11,
     title: 'Count Records',
@@ -194,8 +180,7 @@ const mysqlExercises: MySQLExercise[] = [
       'COUNT(column) counts non-null values',
       'Other aggregates: SUM, AVG, MIN, MAX',
       'These functions summarize data'
-    ],
-  },
+    ]},
   {
     id: 12,
     title: 'Join Two Tables',
@@ -209,8 +194,7 @@ const mysqlExercises: MySQLExercise[] = [
       'INNER JOIN returns only matching records',
       'LEFT JOIN includes unmatched rows from left table',
       'Use aliases (s, c, e) to refer to tables'
-    ],
-  },
+    ]},
   {
     id: 13,
     title: 'Group and Aggregate',
@@ -224,8 +208,7 @@ const mysqlExercises: MySQLExercise[] = [
       'Aggregate functions apply to each group',
       'Use AS to name result columns',
       'All non-grouped columns must use aggregates'
-    ],
-  },
+    ]},
   {
     id: 14,
     title: 'Create Index',
@@ -239,37 +222,22 @@ const mysqlExercises: MySQLExercise[] = [
       'Slow down INSERT and UPDATE operations',
       'Primary keys are indexed automatically',
       'Name your indexes with "idx_" prefix'
-    ],
-  },
+    ]},
 ];
 
 export const MySQLPractice: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<MySQLExercise | null>(null);
   const [userQuery, setUserQuery] = useState('');
   const [showHints, setShowHints] = useState(false);
   const [showExpectedOutput, setShowExpectedOutput] = useState(false);
   const [result, setResult] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [_difficultyFilter, _setDifficultyFilter] = useState('all');
   const [practiceModeTab, setPracticeModeTab] = useState<'guided' | 'freeform'>('guided');
   const [freeformQuery, setFreeformQuery] = useState('');
   const [freeformResult, setFreeformResult] = useState<{ type: 'success' | 'error' | null; message: string; details?: string }>({ type: null, message: '' });
 
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   const normalizeSQL = (sql: string): string => {
     return sql
@@ -296,11 +264,6 @@ export const MySQLPractice: React.FC = () => {
     setUserQuery(selectedExercise?.expectedOutput || '');
     setResult({ type: 'success', message: 'Solution loaded. Study and modify it to learn better!' });
   };
-
-  const filteredExercises = mysqlExercises.filter(exercise => {
-    const matchesFilter = difficultyFilter === 'all' || exercise.difficulty === difficultyFilter;
-    return matchesFilter;
-  });
 
   const getDifficultyColor = (difficulty: string) => {
     switch(difficulty) {
@@ -441,246 +404,98 @@ export const MySQLPractice: React.FC = () => {
   }
 
   return (
+    <AppLayout>
     <div className="dashboard-container">
-      {/* Top Navigation */}
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button 
-              className="menu-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <button 
-              className="menu-toggle"
-              onClick={() => navigate(-1)}
-              style={{ marginLeft: '8px', padding: '8px' }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon" style={{ backgroundColor: '#10b981' }}>
-                <Code2 size={16} />
-              </div>
-              <span className="nav-title">MySQL Practice</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">
-                  {user.displayName || user.email?.split('@')[0]}
-                </div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div 
-                className="profile-avatar"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              >
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt="Profile" 
-                    className="profile-avatar-image"
-                  />
-                ) : (
-                  <span style={{ color: '#10b981', fontWeight: '700' }}>
-                    {(user.email?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button className="dropdown-item">
-                        <User size={16} /> Profile
-                      </button>
-                      <button className="dropdown-item">
-                        <Settings size={16} /> Settings
-                      </button>
-                      <div className="dropdown-divider"></div>
-                      <button
-                        className="dropdown-item danger"
-                        onClick={handleLogout}
-                        disabled={logoutLoading}
-                      >
-                        <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
         {/* Sidebar - Exercise List */}
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-secondary)' }}>
-              Practice Mode
-            </h3>
-            <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-              <button
-                onClick={() => {
-                  setPracticeModeTab('guided');
-                  setSelectedExercise(null);
-                  setUserQuery('');
-                  setResult({ type: null, message: '' });
-                }}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: practiceModeTab === 'guided' ? '#10b981' : 'var(--color-border)',
-                  color: practiceModeTab === 'guided' ? 'white' : 'var(--color-text)',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  transition: 'all 0.2s',
-                }}
-              >
-                Guided Exercises
-              </button>
-              <button
-                onClick={() => {
-                  setPracticeModeTab('freeform');
-                  setSelectedExercise(null);
-                  setFreeformQuery('');
-                  setFreeformResult({ type: null, message: '' });
-                }}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: practiceModeTab === 'freeform' ? '#10b981' : 'var(--color-border)',
-                  color: practiceModeTab === 'freeform' ? 'white' : 'var(--color-text)',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  transition: 'all 0.2s',
-                }}
-              >
-                Free-form Practice
-              </button>
-            </div>
-          </div>
-
-          {practiceModeTab === 'guided' && (
-            <>
-              <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border)' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: 'var(--color-text-secondary)' }}>
-                  Exercises
-                </h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <select 
-                    value={difficultyFilter}
-                    onChange={(e) => setDifficultyFilter(e.target.value)}
+        {practiceModeTab === 'guided' && (
+          <aside style={{
+            width: '280px',
+            backgroundColor: 'var(--color-surface)',
+            borderRight: '1px solid var(--color-border)',
+            overflowY: 'auto',
+            maxHeight: 'calc(100vh - 120px)',
+            padding: '16px 0'
+          }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border)', marginBottom: '16px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>
+                Exercises ({_mysqlExercises.length})
+              </h3>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['all', 'Beginner', 'Intermediate', 'Advanced'].map(level => (
+                  <button
+                    key={level}
+                    onClick={() => {}}
                     style={{
-                      padding: '6px 8px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
                       borderRadius: '4px',
-                      border: '1px solid var(--color-border)',
-                      backgroundColor: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  flex: 1,
-                }}
-              >
-                <option value="all">All Levels</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="sidebar-items">
-            {filteredExercises.map((exercise) => (
-              <button
-                key={exercise.id}
-                onClick={() => {
-                  setSelectedExercise(exercise);
-                  setUserQuery('');
-                  setResult({ type: null, message: '' });
-                  setShowHints(false);
-                  setPracticeModeTab('guided');
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  backgroundColor: selectedExercise?.id === exercise.id ? 'var(--color-border)' : 'transparent',
-                  color: 'var(--color-text)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontSize: '13px',
-                  fontWeight: selectedExercise?.id === exercise.id ? '600' : '400',
-                  transition: 'all 0.2s',
-                  marginBottom: '4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedExercise?.id !== exercise.id) {
-                    e.currentTarget.style.backgroundColor = 'rgba(233, 69, 96, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedExercise?.id !== exercise.id) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                <span>{exercise.id}. {exercise.title}</span>
-                <span style={{ fontSize: '11px', color: getDifficultyColor(exercise.difficulty), fontWeight: '500' }}>
-                  {exercise.category}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">
-                Start with Beginner exercises and work your way up!
+                      backgroundColor: level === 'all' ? 'rgba(233, 69, 96, 0.2)' : 'transparent',
+                      border: `1px solid ${level === 'all' ? 'rgba(233, 69, 96, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                      color: 'var(--color-text)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {level}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-            </>
-          )}
-        </aside>
-
-        {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
-          {practiceModeTab === 'freeform' && !selectedExercise ? (
-            // Free-form Practice Mode (No Exercise Selected)
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div>
+              {_mysqlExercises.map(exercise => (
+                <button
+                  key={exercise.id}
+                  onClick={() => setSelectedExercise(exercise)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    backgroundColor: selectedExercise?.id === exercise.id ? 'rgba(233, 69, 96, 0.15)' : 'transparent',
+                    border: selectedExercise?.id === exercise.id ? '1px solid rgba(233, 69, 96, 0.3)' : '1px solid transparent',
+                    borderLeft: selectedExercise?.id === exercise.id ? '3px solid #e94560' : '3px solid transparent',
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '13px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedExercise?.id !== exercise.id) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedExercise?.id !== exercise.id) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <div style={{ fontWeight: '500', marginBottom: '4px', color: 'var(--color-text)' }}>
+                    {exercise.id}. {exercise.title}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                    {exercise.category}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+        <main className="main-content">
+          <div>
+            {practiceModeTab === 'freeform' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {/* Free-form Header */}
               <div style={{
                 backgroundColor: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
-                padding: '24px',
-              }}>
+                padding: '24px'}}>
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    marginBottom: '12px',
-                  }}>
+                    marginBottom: '12px'}}>
                     <h2 style={{ margin: 0, color: 'var(--color-text)' }}>
                       Free-form SQL Practice
                     </h2>
@@ -690,8 +505,7 @@ export const MySQLPractice: React.FC = () => {
                       backgroundColor: 'rgba(59, 130, 246, 0.2)',
                       color: '#3b82f6',
                       fontSize: '12px',
-                      fontWeight: '600',
-                    }}>
+                      fontWeight: '600'}}>
                       No Restrictions
                     </span>
                   </div>
@@ -705,8 +519,7 @@ export const MySQLPractice: React.FC = () => {
                   backgroundColor: 'rgba(59, 130, 246, 0.05)',
                   borderRadius: '8px',
                   borderLeft: '4px solid #3b82f6',
-                  marginTop: '16px',
-                }}>
+                  marginTop: '16px'}}>
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '600', color: '#3b82f6', textTransform: 'uppercase' }}>
                     Instructions
                   </p>
@@ -720,8 +533,7 @@ export const MySQLPractice: React.FC = () => {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '20px',
-              }}>
+                gap: '20px'}}>
                 {/* Code Editor */}
                 <div style={{
                   backgroundColor: 'var(--color-surface)',
@@ -729,10 +541,9 @@ export const MySQLPractice: React.FC = () => {
                   borderRadius: '12px',
                   padding: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                }}>
+                  flexDirection: 'column'}}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>
-                    <Code2 size={16} style={{ display: 'inline', marginRight: '8px' }} />
+                    <Code size={16} style={{ display: 'inline', marginRight: '8px' }} />
                     Your Query
                   </h3>
                   <textarea
@@ -750,8 +561,7 @@ export const MySQLPractice: React.FC = () => {
                       fontSize: '13px',
                       lineHeight: '1.5',
                       resize: 'none',
-                      minHeight: '200px',
-                    }}
+                      minHeight: '200px'}}
                   />
                   <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                     <button
@@ -770,8 +580,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        transition: 'all 0.2s',
-                      }}
+                        transition: 'all 0.2s'}}
                       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
@@ -794,8 +603,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        transition: 'all 0.2s',
-                      }}
+                        transition: 'all 0.2s'}}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
@@ -816,8 +624,7 @@ export const MySQLPractice: React.FC = () => {
                       color: freeformResult.type === 'success' ? '#10b981' : '#ef4444',
                       fontSize: '13px',
                       fontWeight: '500',
-                      flexDirection: 'column',
-                    }}>
+                      flexDirection: 'column'}}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {freeformResult.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                         {freeformResult.message}
@@ -831,8 +638,7 @@ export const MySQLPractice: React.FC = () => {
                           fontSize: '12px',
                           whiteSpace: 'pre-wrap',
                           wordBreak: 'break-word',
-                          fontFamily: 'monospace',
-                        }}>
+                          fontFamily: 'monospace'}}>
                           {freeformResult.details}
                         </pre>
                       )}
@@ -847,8 +653,7 @@ export const MySQLPractice: React.FC = () => {
                   borderRadius: '12px',
                   padding: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                }}>
+                  flexDirection: 'column'}}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>
                     <Lightbulb size={16} style={{ display: 'inline', marginRight: '8px' }} />
                     Common SQL Patterns
@@ -866,8 +671,7 @@ export const MySQLPractice: React.FC = () => {
                         padding: '12px',
                         borderRadius: '6px',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderLeft: '3px solid #3b82f6',
-                      }}>
+                        borderLeft: '3px solid #3b82f6'}}>
                         <div style={{ fontWeight: '600', color: '#3b82f6', fontSize: '12px', marginBottom: '4px' }}>
                           {pattern.title}
                         </div>
@@ -875,8 +679,7 @@ export const MySQLPractice: React.FC = () => {
                           fontSize: '11px',
                           color: 'var(--color-text-secondary)',
                           wordBreak: 'break-all',
-                          fontFamily: 'monospace',
-                        }}>
+                          fontFamily: 'monospace'}}>
                           {pattern.code}
                         </code>
                       </div>
@@ -887,7 +690,7 @@ export const MySQLPractice: React.FC = () => {
             </div>
           ) : !selectedExercise ? (
             <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--color-text-secondary)' }}>
-              <Code2 size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
+              <Code size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '8px' }}>Welcome to MySQL Practice</h2>
               <p>Select an exercise from the left to get started and master MySQL commands</p>
               
@@ -897,8 +700,7 @@ export const MySQLPractice: React.FC = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '16px',
-                padding: '24px',
-              }}>
+                padding: '24px'}}>
                 <button
                   onClick={() => setPracticeModeTab('guided')}
                   style={{
@@ -910,8 +712,7 @@ export const MySQLPractice: React.FC = () => {
                     fontWeight: '600',
                     fontSize: '14px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
+                    transition: 'all 0.2s'}}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
@@ -923,13 +724,12 @@ export const MySQLPractice: React.FC = () => {
                     padding: '10px 24px',
                     borderRadius: '6px',
                     border: 'none',
-                    backgroundColor: practiceModeTab === 'freeform' ? '#10b981' : 'var(--color-border)',
-                    color: practiceModeTab === 'freeform' ? 'white' : 'var(--color-text)',
+                    backgroundColor: (practiceModeTab as string) === 'freeform' ? '#10b981' : 'var(--color-border)',
+                    color: (practiceModeTab as string) === 'freeform' ? 'white' : 'var(--color-text)',
                     fontWeight: '600',
                     fontSize: '14px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
+                    transition: 'all 0.2s'}}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
@@ -945,21 +745,19 @@ export const MySQLPractice: React.FC = () => {
                   backgroundColor: 'rgba(16, 185, 129, 0.1)',
                   borderRadius: '8px',
                   border: '1px solid #10b981',
-                  color: 'var(--color-text)',
-                }}>
+                  color: 'var(--color-text)'}}>
                   <p>Select an exercise from the left sidebar to practice guided SQL problems</p>
                 </div>
               )}
 
-              {practiceModeTab === 'freeform' && (
+              {(practiceModeTab as string) === 'freeform' && (
                 <div style={{
                   marginTop: '24px',
                   padding: '20px',
                   backgroundColor: 'rgba(59, 130, 246, 0.1)',
                   borderRadius: '8px',
                   border: '1px solid #3b82f6',
-                  color: 'var(--color-text)',
-                }}>
+                  color: 'var(--color-text)'}}>
                   <p>Create your own SQL queries and get real-time syntax feedback</p>
                 </div>
               )}
@@ -971,15 +769,13 @@ export const MySQLPractice: React.FC = () => {
                 backgroundColor: 'var(--color-surface)',
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
-                padding: '24px',
-              }}>
+                padding: '24px'}}>
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    marginBottom: '12px',
-                  }}>
+                    marginBottom: '12px'}}>
                     <h2 style={{ margin: 0, color: 'var(--color-text)' }}>
                       {selectedExercise.id}. {selectedExercise.title}
                     </h2>
@@ -989,8 +785,7 @@ export const MySQLPractice: React.FC = () => {
                       backgroundColor: `${getDifficultyColor(selectedExercise.difficulty)}20`,
                       color: getDifficultyColor(selectedExercise.difficulty),
                       fontSize: '12px',
-                      fontWeight: '600',
-                    }}>
+                      fontWeight: '600'}}>
                       {selectedExercise.difficulty}
                     </span>
                   </div>
@@ -1008,8 +803,7 @@ export const MySQLPractice: React.FC = () => {
                   backgroundColor: 'rgba(233, 69, 96, 0.05)',
                   borderRadius: '8px',
                   borderLeft: '4px solid #e94560',
-                  marginTop: '16px',
-                }}>
+                  marginTop: '16px'}}>
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '600', color: '#e94560', textTransform: 'uppercase' }}>
                     Task
                   </p>
@@ -1023,8 +817,7 @@ export const MySQLPractice: React.FC = () => {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '20px',
-              }}>
+                gap: '20px'}}>
                 {/* Code Editor */}
                 <div style={{
                   backgroundColor: 'var(--color-surface)',
@@ -1032,10 +825,9 @@ export const MySQLPractice: React.FC = () => {
                   borderRadius: '12px',
                   padding: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                }}>
+                  flexDirection: 'column'}}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>
-                    <Code2 size={16} style={{ display: 'inline', marginRight: '8px' }} />
+                    <Code size={16} style={{ display: 'inline', marginRight: '8px' }} />
                     Your Query
                   </h3>
                   <textarea
@@ -1053,8 +845,7 @@ export const MySQLPractice: React.FC = () => {
                       fontSize: '13px',
                       lineHeight: '1.5',
                       resize: 'none',
-                      minHeight: '200px',
-                    }}
+                      minHeight: '200px'}}
                   />
                   <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                     <button
@@ -1073,8 +864,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        transition: 'all 0.2s',
-                      }}
+                        transition: 'all 0.2s'}}
                       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
@@ -1097,8 +887,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '8px',
-                        transition: 'all 0.2s',
-                      }}
+                        transition: 'all 0.2s'}}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
@@ -1119,8 +908,7 @@ export const MySQLPractice: React.FC = () => {
                       gap: '8px',
                       color: result.type === 'success' ? '#10b981' : '#ef4444',
                       fontSize: '13px',
-                      fontWeight: '500',
-                    }}>
+                      fontWeight: '500'}}>
                       {result.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                       {result.message}
                     </div>
@@ -1134,8 +922,7 @@ export const MySQLPractice: React.FC = () => {
                   borderRadius: '12px',
                   padding: '20px',
                   display: 'flex',
-                  flexDirection: 'column',
-                }}>
+                  flexDirection: 'column'}}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>
                     <Lightbulb size={16} style={{ display: 'inline', marginRight: '8px' }} />
                     Hints & Solution
@@ -1159,8 +946,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         transition: 'all 0.2s',
-                        marginBottom: '12px',
-                      }}
+                        marginBottom: '12px'}}
                     >
                       <span>Show Expected Output</span>
                       <ChevronRight size={16} style={{ transform: showExpectedOutput ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
@@ -1177,8 +963,7 @@ export const MySQLPractice: React.FC = () => {
                         lineHeight: '1.5',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-all',
-                        position: 'relative',
-                      }}>
+                        position: 'relative'}}>
                         <button
                           onClick={() => copyToClipboard(selectedExercise.expectedOutput || '')}
                           style={{
@@ -1195,8 +980,7 @@ export const MySQLPractice: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '4px',
-                            transition: 'all 0.2s',
-                          }}
+                            transition: 'all 0.2s'}}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
                         >
@@ -1226,8 +1010,7 @@ export const MySQLPractice: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         transition: 'all 0.2s',
-                        marginBottom: '12px',
-                      }}
+                        marginBottom: '12px'}}
                     >
                       <span>Show Hints</span>
                       <ChevronRight size={16} style={{ transform: showHints ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
@@ -1245,8 +1028,7 @@ export const MySQLPractice: React.FC = () => {
                               borderLeft: '3px solid #3b82f6',
                               fontSize: '13px',
                               color: 'var(--color-text)',
-                              lineHeight: '1.4',
-                            }}
+                              lineHeight: '1.4'}}
                           >
                             <span style={{ fontWeight: '600', color: '#3b82f6' }}>Hint {index + 1}:</span> {hint}
                           </div>
@@ -1257,7 +1039,8 @@ export const MySQLPractice: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
 
@@ -1267,5 +1050,9 @@ export const MySQLPractice: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
+
+
+

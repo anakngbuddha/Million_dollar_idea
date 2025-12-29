@@ -1,22 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
+import { QuizViolationNotification } from '../../components/QuizViolationNotification';
+import { useQuizProtection } from '../../hooks/useQuizProtection';
 import { saveQuizResult } from '../../services/quizService';
 import {
-  ArrowLeft,
-  Search,
   Clock,
-  Users,
-  BarChart3,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  User,
   CheckCircle,
   XCircle,
-} from 'lucide-react';
+  Users} from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
 interface Question {
@@ -32,9 +25,7 @@ interface Question {
 export const StorageMigrationQuiz: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const quizContainerRef = useRef<HTMLDivElement>(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<(string | string[])[]>([]);
@@ -45,6 +36,27 @@ export const StorageMigrationQuiz: React.FC = () => {
   const [isSavingResults, setIsSavingResults] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const { state: protectionState, showNotification, requestFullscreen, setQuizActive } = useQuizProtection(quizContainerRef, {
+    maxViolations: 5,
+    onViolation: (count) => {
+      console.log(`Quiz violation detected: ${count}`);
+    },
+    onAutoSubmit: () => {
+      console.log('Auto-submitting quiz due to violations');
+      handleCompleteQuiz();
+    },
+    enabled: quizStarted && !quizCompleted,
+  });
+
+  useEffect(() => {
+    if (quizStarted && !quizCompleted) {
+      setQuizActive(true);
+      requestFullscreen();
+    } else {
+      setQuizActive(false);
+    }
+  }, [quizStarted, quizCompleted, requestFullscreen, setQuizActive]);
+
   const questions: Question[] = [
     {
       id: 1,
@@ -52,160 +64,140 @@ export const StorageMigrationQuiz: React.FC = () => {
       question: 'ECS local disk is persistent even if the instance is deleted.',
       options: ['True', 'False'],
       correctAnswer: 'False',
-      points: 1,
-    },
+      points: 1},
     {
       id: 2,
       type: 'true-false',
       question: 'OBS can be used as live storage for a database.',
       options: ['True', 'False'],
       correctAnswer: 'False',
-      points: 1,
-    },
+      points: 1},
     {
       id: 3,
       type: 'true-false',
       question: 'EVS must be mounted before a database can write data to it.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 4,
       type: 'true-false',
       question: 'SMS automatically migrates attached EVS volumes when migrating an ECS instance.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 5,
       type: 'true-false',
       question: 'Data Express Service (DES) can migrate data to both EVS and OBS.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 6,
       type: 'true-false',
       question: 'You can use Huawei EVS snapshots to migrate data from AWS to Huawei Cloud.',
       options: ['True', 'False'],
       correctAnswer: 'False',
-      points: 1,
-    },
+      points: 1},
     {
       id: 7,
       type: 'true-false',
       question: 'VPN can provide a secure connection between AWS EC2 and Huawei ECS for migration.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 8,
       type: 'true-false',
       question: 'DES is recommended for migrating small datasets under 100 GB.',
       options: ['True', 'False'],
       correctAnswer: 'False',
-      points: 1,
-    },
+      points: 1},
     {
       id: 9,
       type: 'true-false',
       question: 'Database dumps are commonly used when migrating database data across clouds.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 10,
       type: 'true-false',
       question: 'OBS objects are stored as files with metadata and a flat namespace.',
       options: ['True', 'False'],
       correctAnswer: 'True',
-      points: 1,
-    },
+      points: 1},
     {
       id: 11,
       type: 'multiple-choice',
       question: 'Which of the following storage types is persistent and block-based?',
       options: ['ECS local disk', 'OBS', 'EVS', 'Both a and c'],
       correctAnswer: 'EVS',
-      points: 2,
-    },
+      points: 2},
     {
       id: 12,
       type: 'multiple-choice',
       question: 'Which Huawei Cloud tool is recommended for migrating large datasets (>1 TB) quickly?',
       options: ['SMS', 'DES', 'OBS', 'EVS snapshot'],
       correctAnswer: 'DES',
-      points: 2,
-    },
+      points: 2},
     {
       id: 13,
       type: 'multiple-choice',
       question: 'If you attach EVS to ECS but do not mount it, where will the database store data by default?',
       options: ['EVS', 'ECS local disk', 'OBS', 'Cannot store data'],
       correctAnswer: 'ECS local disk',
-      points: 2,
-    },
+      points: 2},
     {
       id: 14,
       type: 'multiple-choice',
       question: 'When using a VPN to migrate from AWS to Huawei, which of the following must be configured?',
       options: ['VPN Gateway on Huawei Cloud', 'Customer Gateway on AWS', 'Route tables and security groups', 'All of the above'],
       correctAnswer: 'All of the above',
-      points: 2,
-    },
+      points: 2},
     {
       id: 15,
       type: 'multiple-choice',
       question: 'Which file type is commonly used for database backups before migration?',
       options: ['.sql', '.bak', '.dump', 'All of the above'],
       correctAnswer: 'All of the above',
-      points: 2,
-    },
+      points: 2},
     {
       id: 16,
       type: 'multiple-choice',
       question: 'What is a key advantage of using DES over direct Internet transfer?',
       options: ['Lower cost', 'Faster and more reliable for large data', 'Automatic database restoration', 'Can migrate live ECS instances without preparation'],
       correctAnswer: 'Faster and more reliable for large data',
-      points: 2,
-    },
+      points: 2},
     {
       id: 17,
       type: 'multiple-choice',
       question: 'If you want to migrate data to OBS, what is required?',
       options: ['Mount EVS', 'Upload files via OBS CLI or SDK', 'Attach system disk', 'Use EVS snapshot'],
       correctAnswer: 'Upload files via OBS CLI or SDK',
-      points: 2,
-    },
+      points: 2},
     {
       id: 18,
       type: 'multiple-choice',
       question: 'Which is NOT a valid use case for OBS?',
       options: ['Backup storage', 'Database live storage', 'Archive of files', 'Static web content'],
       correctAnswer: 'Database live storage',
-      points: 2,
-    },
+      points: 2},
     {
       id: 19,
       type: 'multiple-choice',
       question: 'When migrating ECS with SMS from another cloud, which storage is migrated automatically?',
       options: ['EVS', 'ECS system disk', 'OBS', 'All attached disks'],
       correctAnswer: 'All attached disks',
-      points: 2,
-    },
+      points: 2},
     {
       id: 20,
       type: 'multiple-choice',
       question: 'To migrate database data safely across clouds, you should:',
       options: ['Transfer the database files directly from live DB', 'Stop the database, export a dump, and transfer', 'Only copy the local disk without export', 'Use EVS snapshot from AWS'],
       correctAnswer: 'Stop the database, export a dump, and transfer',
-      points: 2,
-    },
+      points: 2},
   ];
 
   // Track quiz start time when quiz begins
@@ -215,22 +207,15 @@ export const StorageMigrationQuiz: React.FC = () => {
     }
   }, [quizStarted, timeStarted]);
 
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   const handleAnswer = (answer: string | string[]) => {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestion] = answer;
     setUserAnswers(newAnswers);
+  };
+
+  const handleCompleteQuiz = () => {
+    calculateScore();
   };
 
   const handleNext = () => {
@@ -261,8 +246,7 @@ export const StorageMigrationQuiz: React.FC = () => {
         userAnswer: userAnswer || '',
         correctAnswer: question.correctAnswer || '',
         isCorrect,
-        points: question.points,
-      };
+        points: question.points};
     });
 
     setScore(totalScore);
@@ -333,125 +317,14 @@ export const StorageMigrationQuiz: React.FC = () => {
     return null;
   }
 
-  const navigationItems = [
-    { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: false },
-    { icon: Search, label: 'My Quizzes', href: '/quizzes', active: true },
-    { icon: BarChart3, label: 'Performance', href: '/analytics' },
-    { icon: Users, label: 'Community', href: '#' },
-    { icon: Settings, label: 'Settings', href: '#' },
-  ];
-
   const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
   const maxScore = totalPoints;
 
   return (
+    <AppLayout hideNavigation={protectionState.isQuizActive}>
     <div className="dashboard-container">
-      {/* Top Navigation */}
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button 
-              className="menu-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <button 
-              className="menu-toggle"
-              onClick={() => navigate('/quizzes')}
-              style={{ marginLeft: '8px', padding: '8px' }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">
-                  {user.displayName || user.email?.split('@')[0]}
-                </div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div 
-                className="profile-avatar"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              >
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt="Profile" 
-                    className="profile-avatar-image"
-                  />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>
-                    {(user.email?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button className="dropdown-item">
-                        <User size={16} /> Profile
-                      </button>
-                      <button className="dropdown-item">
-                        <Settings size={16} /> Settings
-                      </button>
-                      <div className="dropdown-divider"></div>
-                      <button
-                        className="dropdown-item danger"
-                        onClick={handleLogout}
-                        disabled={logoutLoading}
-                      >
-                        <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
-        {/* Sidebar */}
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            {navigationItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`sidebar-item ${item.active ? 'active' : ''}`}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">
-                Master Huawei Cloud migration concepts!
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           {!quizStarted ? (
             <>
               {/* Quiz Intro */}
@@ -465,20 +338,17 @@ export const StorageMigrationQuiz: React.FC = () => {
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 padding: '40px',
-                maxWidth: '600px',
-              }}>
+                maxWidth: '600px'}}>
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
                   gap: '24px',
-                  marginBottom: '32px',
-                }}>
+                  marginBottom: '32px'}}>
                   <div style={{
                     padding: '16px',
                     backgroundColor: 'rgba(233, 69, 96, 0.1)',
                     borderRadius: '8px',
-                    borderLeft: '3px solid #e94560',
-                  }}>
+                    borderLeft: '3px solid #e94560'}}>
                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
                       Total Questions
                     </div>
@@ -490,8 +360,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     padding: '16px',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     borderRadius: '8px',
-                    borderLeft: '3px solid #10b981',
-                  }}>
+                    borderLeft: '3px solid #10b981'}}>
                     <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
                       Max Points
                     </div>
@@ -507,8 +376,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                   gap: '12px',
                   marginBottom: '32px',
                   fontSize: '13px',
-                  color: 'var(--color-text-secondary)',
-                }}>
+                  color: 'var(--color-text-secondary)'}}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Clock size={16} />
                     <span>Average Time: 20-25 min</span>
@@ -526,8 +394,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                   padding: '16px',
                   marginBottom: '32px',
                   fontSize: '13px',
-                  color: 'var(--color-text-secondary)',
-                }}>
+                  color: 'var(--color-text-secondary)'}}>
                   <strong style={{ color: 'var(--color-text)' }}>Instructions:</strong>
                   <ul style={{ margin: '8px 0 0 16px', paddingLeft: 0 }}>
                     <li>Answer all questions to complete the quiz</li>
@@ -549,8 +416,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     fontWeight: '600',
                     fontSize: '16px',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
+                    transition: 'all 0.2s ease'}}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.02)';
                     e.currentTarget.style.backgroundColor = '#d83a50';
@@ -566,13 +432,17 @@ export const StorageMigrationQuiz: React.FC = () => {
             </>
           ) : !quizCompleted ? (
             <>
-              {/* Quiz Progress */}
-              <div style={{
+              <QuizViolationNotification
+                show={showNotification}
+                message={protectionState.warningMessage}
+                violations={protectionState.violations}
+                maxViolations={5}
+              />
+              <div ref={quizContainerRef} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '24px',
-              }}>
+                marginBottom: '24px'}}>
                 <div>
                   <h2 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>
                     Question {currentQuestion + 1} of {questions.length}
@@ -584,21 +454,18 @@ export const StorageMigrationQuiz: React.FC = () => {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
-                }}>
+                  gap: '12px'}}>
                   <div style={{
                     width: '120px',
                     height: '6px',
                     backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: '3px',
-                    overflow: 'hidden',
-                  }}>
+                    overflow: 'hidden'}}>
                     <div style={{
                       width: `${((currentQuestion + 1) / questions.length) * 100}%`,
                       height: '100%',
                       backgroundColor: '#e94560',
-                      transition: 'width 0.3s ease',
-                    }}></div>
+                      transition: 'width 0.3s ease'}}></div>
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
                     {Math.round(((currentQuestion + 1) / questions.length) * 100)}%
@@ -612,15 +479,13 @@ export const StorageMigrationQuiz: React.FC = () => {
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 padding: '32px',
-                marginBottom: '32px',
-              }}>
+                marginBottom: '32px'}}>
                 <h3 style={{
                   fontSize: '18px',
                   fontWeight: '600',
                   marginBottom: '24px',
                   color: 'var(--color-text)',
-                  lineHeight: '1.6',
-                }}>
+                  lineHeight: '1.6'}}>
                   {questions[currentQuestion].question}
                 </h3>
 
@@ -642,8 +507,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                           ? 'rgba(233, 69, 96, 0.1)'
                           : 'transparent',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
+                        transition: 'all 0.2s ease'}}
                       onMouseEnter={(e) => {
                         if (userAnswers[currentQuestion] !== option) {
                           e.currentTarget.style.borderColor = 'rgba(233, 69, 96, 0.5)';
@@ -666,8 +530,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                           width: '20px',
                           height: '20px',
                           cursor: 'pointer',
-                          marginRight: '12px',
-                        }}
+                          marginRight: '12px'}}
                       />
                       <span style={{ fontSize: '15px' }}>{option}</span>
                     </label>
@@ -679,8 +542,7 @@ export const StorageMigrationQuiz: React.FC = () => {
               <div style={{
                 display: 'flex',
                 gap: '12px',
-                justifyContent: 'space-between',
-              }}>
+                justifyContent: 'space-between'}}>
                 <button
                   onClick={handlePrevious}
                   disabled={currentQuestion === 0}
@@ -694,8 +556,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     fontSize: '14px',
                     cursor: currentQuestion === 0 ? 'not-allowed' : 'pointer',
                     opacity: currentQuestion === 0 ? 0.5 : 1,
-                    transition: 'all 0.2s ease',
-                  }}
+                    transition: 'all 0.2s ease'}}
                   onMouseEnter={(e) => {
                     if (currentQuestion > 0) {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
@@ -721,8 +582,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     fontSize: '14px',
                     cursor: !userAnswers[currentQuestion] ? 'not-allowed' : 'pointer',
                     opacity: !userAnswers[currentQuestion] ? 0.6 : 1,
-                    transition: 'all 0.2s ease',
-                  }}
+                    transition: 'all 0.2s ease'}}
                   onMouseEnter={(e) => {
                     if (userAnswers[currentQuestion]) {
                       e.currentTarget.style.transform = 'scale(1.02)';
@@ -751,8 +611,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 padding: '40px',
-                textAlign: 'center',
-              }}>
+                textAlign: 'center'}}>
                 <div style={{
                   width: '120px',
                   height: '120px',
@@ -764,8 +623,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                   justifyContent: 'center',
                   fontSize: '48px',
                   fontWeight: '700',
-                  color: score >= maxScore * 0.7 ? '#10b981' : '#f59e0b',
-                }}>
+                  color: score >= maxScore * 0.7 ? '#10b981' : '#f59e0b'}}>
                   {score}/{maxScore}
                 </div>
 
@@ -789,8 +647,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     padding: '12px',
                     marginBottom: '24px',
                     fontSize: '13px',
-                    color: 'rgba(96, 165, 250, 0.9)',
-                  }}>
+                    color: 'rgba(96, 165, 250, 0.9)'}}>
                     Saving your results to Firebase...
                   </div>
                 )}
@@ -803,8 +660,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     padding: '12px',
                     marginBottom: '24px',
                     fontSize: '13px',
-                    color: 'rgba(239, 68, 68, 0.9)',
-                  }}>
+                    color: 'rgba(239, 68, 68, 0.9)'}}>
                     ⚠️ {saveError}
                   </div>
                 )}
@@ -817,8 +673,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     padding: '12px',
                     marginBottom: '24px',
                     fontSize: '13px',
-                    color: 'rgba(16, 185, 129, 0.9)',
-                  }}>
+                    color: 'rgba(16, 185, 129, 0.9)'}}>
                     ✓ Results saved successfully
                   </div>
                 )}
@@ -829,8 +684,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                   borderRadius: '8px',
                   padding: '24px',
                   marginBottom: '32px',
-                  textAlign: 'left',
-                }}>
+                  textAlign: 'left'}}>
                   <h3 style={{ marginTop: 0, marginBottom: '16px', color: 'var(--color-text)' }}>
                     Answer Review
                   </h3>
@@ -838,8 +692,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                     display: 'grid',
                     gap: '12px',
                     maxHeight: '300px',
-                    overflowY: 'auto',
-                  }}>
+                    overflowY: 'auto'}}>
                     {questions.map((question, index) => {
                       const isCorrect = question.correctAnswer === userAnswers[index];
                       return (
@@ -852,8 +705,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                             padding: '12px',
                             borderRadius: '6px',
                             backgroundColor: isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                            borderLeft: `3px solid ${isCorrect ? '#10b981' : '#ef4444'}`,
-                          }}>
+                            borderLeft: `3px solid ${isCorrect ? '#10b981' : '#ef4444'}`}}>
                           {isCorrect ? (
                             <CheckCircle size={18} style={{ color: '#10b981', flexShrink: 0 }} />
                           ) : (
@@ -870,8 +722,7 @@ export const StorageMigrationQuiz: React.FC = () => {
 
                 <div style={{
                   display: 'flex',
-                  gap: '12px',
-                }}>
+                  gap: '12px'}}>
                   <button
                     onClick={restartQuiz}
                     style={{
@@ -884,8 +735,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                       fontWeight: '600',
                       fontSize: '14px',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
+                      transition: 'all 0.2s ease'}}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                     }}
@@ -907,8 +757,7 @@ export const StorageMigrationQuiz: React.FC = () => {
                       fontWeight: '600',
                       fontSize: '14px',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
+                      transition: 'all 0.2s ease'}}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'scale(1.02)';
                       e.currentTarget.style.backgroundColor = '#d83a50';
@@ -933,5 +782,8 @@ export const StorageMigrationQuiz: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
+
+export default StorageMigrationQuiz;

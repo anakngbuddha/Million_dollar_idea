@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { AppLayout } from '../components/AppLayout';
 import type { Post } from '../services/communityService';
 import { getPosts, createPost } from '../services/communityService';
 import PostComponent from '../components/Post';
@@ -14,6 +13,7 @@ import {
   Lightbulb,
   Target,
   FileText,
+  X,
 } from 'lucide-react';
 import '../styles/DashboardPage.css';
 import './CommunityPage.css';
@@ -28,7 +28,6 @@ const CommunityPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastDoc, setLastDoc] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -139,14 +138,11 @@ const CommunityPage: React.FC = () => {
   };
 
   return (
+    <AppLayout>
     <div className="dashboard-container">
-      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
       <div className="dashboard-layout">
-        <Sidebar isOpen={sidebarOpen} />
-
         {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           
           {/* Header Section */}
           <div className="content-header">
@@ -351,6 +347,7 @@ const CommunityPage: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
 

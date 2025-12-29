@@ -74,7 +74,7 @@ body::after {
   left: 0;
   right: 0;
   height: 70px;
-  display: flex;
+  display: none;
   align-items: center;
   padding: 0 40px;
   background: rgba(15, 15, 30, 0.7);
@@ -317,7 +317,7 @@ body::after {
 /* Main Layout */
 .dashboard-layout {
   display: flex;
-  margin-top: 70px;
+  margin-top: 0;
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
@@ -325,6 +325,7 @@ body::after {
 
 /* Sidebar */
 .sidebar {
+  display: none;
   position: fixed;
   left: 0;
   top: 70px;
@@ -420,7 +421,7 @@ body::after {
 /* Main Content */
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 0;
   padding: 40px;
   transition: margin-left 0.3s ease;
 }

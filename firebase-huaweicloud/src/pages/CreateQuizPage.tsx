@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { AppLayout } from '../components/AppLayout';
 import {
   ArrowLeft,
   Plus,
@@ -44,7 +43,6 @@ interface QuestionTemplate {
 export const CreateQuizPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showTemplateHelp, setShowTemplateHelp] = useState(false);
   const [geminiPanelOpen, setGeminiPanelOpen] = useState(false);
@@ -60,6 +58,8 @@ export const CreateQuizPage: React.FC = () => {
   const [quizCategory, setQuizCategory] = useState('');
   const [quizDifficulty, setQuizDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner');
   const [quizVisibility, setQuizVisibility] = useState<QuizVisibility>('private');
+  const [attemptRestriction, setAttemptRestriction] = useState<'unlimited' | 'once' | 'limited'>('unlimited');
+  const [attemptLimit, setAttemptLimit] = useState(3);
   const [questions, setQuestions] = useState<QuizQuestion[]>([
     {
       id: '1',
@@ -212,6 +212,8 @@ export const CreateQuizPage: React.FC = () => {
         visibility: quizVisibility,
         category: quizCategory || undefined,
         difficulty: quizDifficulty,
+        attemptRestriction,
+        attemptLimit: attemptRestriction === 'limited' ? attemptLimit : undefined,
       });
 
       alert('Quiz created successfully!');
@@ -232,6 +234,10 @@ export const CreateQuizPage: React.FC = () => {
         return Lock;
       case 'shared':
         return UsersIcon;
+      case 'classroom':
+        return UsersIcon;
+      default:
+        return Lock;
     }
   };
 
@@ -274,13 +280,10 @@ export const CreateQuizPage: React.FC = () => {
   };
 
   return (
-    <div className="dashboard-container" style={{ backgroundColor: 'var(--color-background)' }}>
-      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
-      <div className="dashboard-layout">
-        <Sidebar isOpen={sidebarOpen} />
-
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`} style={{ backgroundColor: 'var(--color-background)' }}>
+    <AppLayout>
+      <div className="dashboard-container" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div className="dashboard-layout">
+          <main className="main-content" style={{ backgroundColor: 'var(--color-background)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
@@ -506,15 +509,16 @@ export const CreateQuizPage: React.FC = () => {
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text)' }}>
               Visibility
             </label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {(['private', 'public', 'shared'] as QuizVisibility[]).map((visibility) => {
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {(['private', 'public', 'shared', 'classroom'] as QuizVisibility[]).map((visibility) => {
                 const Icon = getVisibilityIcon(visibility);
                 return (
                   <button
                     key={visibility}
                     onClick={() => setQuizVisibility(visibility)}
                     style={{
-                      flex: 1,
+                      flex: visibility === 'classroom' ? '1 0 100%' : '1 0 auto',
+                      minWidth: '100px',
                       padding: '12px',
                       backgroundColor: quizVisibility === visibility ? 'rgba(233, 69, 96, 0.1)' : 'var(--color-background)',
                       border: `2px solid ${quizVisibility === visibility ? '#e94560' : 'var(--color-border)'}`,
@@ -532,7 +536,7 @@ export const CreateQuizPage: React.FC = () => {
                     }}
                   >
                     <Icon size={16} />
-                    {visibility}
+                    {visibility === 'classroom' ? 'Classroom Shareable' : visibility}
                   </button>
                 );
               })}
@@ -541,7 +545,63 @@ export const CreateQuizPage: React.FC = () => {
               {quizVisibility === 'private' && '• Only you can see this quiz'}
               {quizVisibility === 'public' && '• Anyone can view and take this quiz'}
               {quizVisibility === 'shared' && '• Share with specific users (configure later)'}
+              {quizVisibility === 'classroom' && '• Share with specific classrooms where you are the instructor'}
             </p>
+          </div>
+
+          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--color-border)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: 'var(--color-text)' }}>
+              Attempt Restrictions
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: 'var(--color-text-secondary)' }}>
+                  Students can take this quiz:
+                </label>
+                <select
+                  value={attemptRestriction}
+                  onChange={(e) => setAttemptRestriction(e.target.value as 'unlimited' | 'once' | 'limited')}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    backgroundColor: 'var(--color-background)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '6px',
+                    color: 'var(--color-text)',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="unlimited">Unlimited times</option>
+                  <option value="once">Once only</option>
+                  <option value="limited">Limited number of times</option>
+                </select>
+              </div>
+
+              {attemptRestriction === 'limited' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: 'var(--color-text-secondary)' }}>
+                    Number of attempts allowed:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={attemptLimit}
+                    onChange={(e) => setAttemptLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: 'var(--color-background)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '6px',
+                      color: 'var(--color-text)',
+                      fontSize: '14px',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -972,7 +1032,8 @@ export const CreateQuizPage: React.FC = () => {
             <Sparkles size={24} className="gemini-icon" />
           </button>
         </main>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };

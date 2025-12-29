@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
+import { QuizViolationNotification } from '../../components/QuizViolationNotification';
+import { useQuizProtection } from '../../hooks/useQuizProtection';
 import { saveQuizResult } from '../../services/quizService';
 import {
   CheckCircle,
-  XCircle,
   AlertCircle,
-  LogOut,
-  Menu,
-  X,
   Clock,
-  BookOpen,
-  BarChart4,
-  Users,
-  Settings,
-  Search,
-  Home,
-} from 'lucide-react';
+  XCircle} from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
 interface Question {
@@ -32,9 +24,7 @@ interface Question {
 export const HuaweiCloudMigrationQuiz: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const quizContainerRef = useRef<HTMLDivElement>(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: number | number[]}>({});
@@ -44,6 +34,27 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
   const [timeStarted, setTimeStarted] = useState<number | null>(null);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isSavingResults, setIsSavingResults] = useState(false);
+
+  const { state: protectionState, showNotification, requestFullscreen, setQuizActive } = useQuizProtection(quizContainerRef, {
+    maxViolations: 5,
+    onViolation: (count) => {
+      console.log(`Quiz violation detected: ${count}`);
+    },
+    onAutoSubmit: () => {
+      console.log('Auto-submitting quiz due to violations');
+      handleCompleteQuiz();
+    },
+    enabled: quizStarted && !quizCompleted,
+  });
+
+  useEffect(() => {
+    if (quizStarted && !quizCompleted) {
+      setQuizActive(true);
+      requestFullscreen();
+    } else {
+      setQuizActive(false);
+    }
+  }, [quizStarted, quizCompleted, requestFullscreen, setQuizActive]);
 
   const questions: Question[] = [
     {
@@ -432,17 +443,6 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
     }
   }, [quizStarted, timeStarted, quizCompleted]);
 
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   const handleAnswer = (questionIndex: number, answerIndex: number) => {
     const question = questions[questionIndex];
@@ -514,6 +514,11 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
     if (user?.uid) {
       setIsSavingResults(true);
       try {
+        // Calculate final score by checking all answered questions
+        const finalScore = questions.reduce((acc, _, index) => {
+          return acc + (checkAnswerSilent(index) ? 1 : 0);
+        }, 0);
+
         const detailedAnswers = questions.map((question, index) => {
           const userAnswer = selectedAnswers[index];
           const isCorrect = checkAnswerSilent(index);
@@ -537,15 +542,14 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
             userAnswer: userAnswerStr,
             correctAnswer: correctAnswerStr,
             isCorrect: isCorrect,
-            points: isCorrect ? 1 : 0,
-          };
+            points: isCorrect ? 1 : 0};
         });
 
         await saveQuizResult(
           user.uid,
           'huawei-cloud-migration',
           'Huawei Cloud Migration Essentials',
-          currentScore,
+          finalScore,
           questions.length,
           detailedAnswers,
           timeSpent
@@ -564,7 +568,6 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const allAnswered = Object.keys(showExplanation).length === questions.length;
   const currentScore = Object.keys(showExplanation).reduce((acc, key) => {
     return acc + (checkAnswerSilent(parseInt(key)) ? 1 : 0);
   }, 0);
@@ -593,85 +596,11 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
     return null;
   }
 
-  const navigationItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard', active: false },
-    { icon: BookOpen, label: 'My Quizzes', href: '/quizzes', active: true },
-    { icon: BarChart4, label: 'Performance', href: '/analytics' },
-    { icon: Users, label: 'Community', href: '#' },
-    { icon: Settings, label: 'Settings', href: '#' },
-  ];
-
   return (
+    <AppLayout hideNavigation={protectionState.isQuizActive}>
     <div className="dashboard-container">
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="search-bar">
-              <Search size={16} className="search-icon" />
-              <input type="text" placeholder="Search quizzes..." />
-            </div>
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">{user.displayName || user.email?.split('@')[0]}</div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div className="profile-avatar" onMouseEnter={() => setDropdownOpen(true)} onMouseLeave={() => setDropdownOpen(false)}>
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="profile-avatar-image" />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>{(user.email?.[0] || 'U').toUpperCase()}</span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button onClick={handleLogout} disabled={logoutLoading} className="dropdown-item danger">
-                        <LogOut size={14} />
-                        {logoutLoading ? 'Logging out...' : 'Logout'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            {navigationItems.map((item) => (
-              <a key={item.label} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">Review the explanations to strengthen your knowledge!</div>
-            </div>
-          </div>
-        </aside>
-
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           {!quizStarted ? (
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
               <div style={{ backgroundColor: 'rgba(22, 33, 62, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '50px 40px', borderRadius: '12px', textAlign: 'center' }}>
@@ -692,7 +621,13 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
               </div>
             </div>
           ) : !quizCompleted ? (
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
+            <div ref={quizContainerRef} style={{ width: '100%', margin: '0 auto', padding: '40px' }}>
+              <QuizViolationNotification
+                show={showNotification}
+                message={protectionState.warningMessage}
+                violations={protectionState.violations}
+                maxViolations={5}
+              />
               <div style={{ backgroundColor: 'rgba(22, 33, 62, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '24px', borderRadius: '12px', marginBottom: '30px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div>
@@ -776,7 +711,7 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
                   <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', marginTop: '28px', paddingTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
                     <button onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))} disabled={currentQuestion === 0} style={{ padding: '10px 24px', backgroundColor: currentQuestion === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(233, 69, 96, 0.2)', color: currentQuestion === 0 ? 'var(--color-text-secondary)' : 'var(--color-accent-light)', border: '1px solid ' + (currentQuestion === 0 ? 'rgba(255, 255, 255, 0.1)' : 'rgba(233, 69, 96, 0.3)'), borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: currentQuestion === 0 ? 'not-allowed' : 'pointer', transition: 'var(--transition-smooth)' }} onMouseEnter={(e) => { if (currentQuestion > 0) { e.currentTarget.style.backgroundColor = 'rgba(233, 69, 96, 0.3)'; } }} onMouseLeave={(e) => { if (currentQuestion > 0) { e.currentTarget.style.backgroundColor = 'rgba(233, 69, 96, 0.2)'; } }}>← Previous</button>
 
-                    {currentQuestion === questions.length - 1 && allAnswered ? (
+                    {currentQuestion === questions.length - 1 && Object.keys(selectedAnswers).length > 0 ? (
                       <button onClick={handleCompleteQuiz} disabled={isSavingResults} style={{ padding: '10px 28px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'var(--transition-smooth)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#059669'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#10b981'; e.currentTarget.style.transform = 'translateY(0)'; }}>{isSavingResults ? 'Saving...' : 'Complete Quiz'}</button>
                     ) : (
                       <button onClick={() => setCurrentQuestion(Math.min(questions.length - 1, currentQuestion + 1))} disabled={currentQuestion === questions.length - 1} style={{ padding: '10px 28px', backgroundColor: currentQuestion === questions.length - 1 ? 'rgba(255, 255, 255, 0.05)' : 'var(--color-accent-light)', color: currentQuestion === questions.length - 1 ? 'var(--color-text-secondary)' : 'white', border: currentQuestion === questions.length - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: currentQuestion === questions.length - 1 ? 'not-allowed' : 'pointer', transition: 'var(--transition-smooth)', boxShadow: currentQuestion === questions.length - 1 ? 'none' : '0 4px 12px rgba(233, 69, 96, 0.3)' }} onMouseEnter={(e) => { if (currentQuestion < questions.length - 1) { e.currentTarget.style.backgroundColor = '#d63948'; e.currentTarget.style.transform = 'translateY(-2px)'; } }} onMouseLeave={(e) => { if (currentQuestion < questions.length - 1) { e.currentTarget.style.backgroundColor = 'var(--color-accent-light)'; e.currentTarget.style.transform = 'translateY(0)'; } }}>Next →</button>
@@ -786,34 +721,44 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
               )}
             </div>
           ) : (
-            <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
+            <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
               <div style={{ backgroundColor: 'rgba(22, 33, 62, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '50px 40px', borderRadius: '12px', textAlign: 'center' }}>
                 <div style={{ width: '80px', height: '80px', backgroundColor: 'rgba(16, 185, 129, 0.2)', border: '2px solid #10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px' }}>
                   <CheckCircle size={48} style={{ color: '#10b981' }} />
                 </div>
                 <h2 style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--color-text-primary)', marginBottom: '20px' }}>Quiz Complete!</h2>
-                <div style={{ fontSize: '56px', fontWeight: 'bold', color: 'var(--color-accent-light)', marginBottom: '10px' }}>{currentScore} / {questions.length}</div>
-                <p style={{ fontSize: '20px', color: 'var(--color-text-secondary)', marginBottom: '10px' }}>({((currentScore / questions.length) * 100).toFixed(1)}%)</p>
+                <div style={{ fontSize: '56px', fontWeight: 'bold', color: 'var(--color-accent-light)', marginBottom: '10px' }}>{questions.reduce((acc, _, index) => acc + (checkAnswerSilent(index) ? 1 : 0), 0)} / {questions.length}</div>
+                <p style={{ fontSize: '20px', color: 'var(--color-text-secondary)', marginBottom: '10px' }}>({(((questions.reduce((acc, _, index) => acc + (checkAnswerSilent(index) ? 1 : 0), 0) / questions.length) * 100)).toFixed(1)}%)</p>
                 <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <Clock size={16} /> Time spent: {formatTime(timeSpent)}
                 </p>
                 
-                {currentScore / questions.length >= 0.8 ? (
-                  <div style={{ padding: '24px', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
-                    <p style={{ color: '#10b981', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Excellent Performance!</p>
-                    <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>You've demonstrated strong knowledge of Huawei Cloud migration essentials. Keep up the great work!</p>
-                  </div>
-                ) : currentScore / questions.length >= 0.6 ? (
-                  <div style={{ padding: '24px', backgroundColor: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
-                    <p style={{ color: '#f59e0b', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Good Effort!</p>
-                    <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>You've shown understanding of key concepts. Review the questions you missed to strengthen your knowledge.</p>
-                  </div>
-                ) : (
-                  <div style={{ padding: '24px', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
-                    <p style={{ color: '#ef4444', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Keep Learning!</p>
-                    <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>Review the explanations for the questions you missed and consider retaking the quiz to improve.</p>
-                  </div>
-                )}
+                {(() => {
+                  const finalScore = questions.reduce((acc, _, index) => acc + (checkAnswerSilent(index) ? 1 : 0), 0);
+                  const percentage = (finalScore / questions.length) * 100;
+                  if (percentage >= 80) {
+                    return (
+                      <div style={{ padding: '24px', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
+                        <p style={{ color: '#10b981', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Excellent Performance!</p>
+                        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>You've demonstrated strong knowledge of Huawei Cloud migration essentials. Keep up the great work!</p>
+                      </div>
+                    );
+                  } else if (percentage >= 60) {
+                    return (
+                      <div style={{ padding: '24px', backgroundColor: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
+                        <p style={{ color: '#f59e0b', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Good Effort!</p>
+                        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>You've shown understanding of key concepts. Review the questions you missed to strengthen your knowledge.</p>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div style={{ padding: '24px', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', marginBottom: '40px' }}>
+                        <p style={{ color: '#ef4444', fontWeight: '600', marginBottom: '8px', fontSize: '16px' }}>Keep Learning!</p>
+                        <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: '14px' }}>Review the explanations for the questions you missed and consider retaking the quiz to improve.</p>
+                      </div>
+                    );
+                  }
+                })()}
 
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                   <button onClick={() => { setQuizStarted(false); setCurrentQuestion(0); setSelectedAnswers({}); setShowExplanation({}); setQuizCompleted(false); setScore(0); setTimeStarted(null); setTimeSpent(0); }} style={{ padding: '10px 32px', fontSize: '15px', fontWeight: '600', backgroundColor: 'var(--color-accent-light)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'var(--transition-smooth)', boxShadow: '0 4px 12px rgba(233, 69, 96, 0.3)' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#d63948'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-accent-light)'; e.currentTarget.style.transform = 'translateY(0)'; }}>Retake Quiz</button>
@@ -831,7 +776,11 @@ export const HuaweiCloudMigrationQuiz: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
 
 export default HuaweiCloudMigrationQuiz;
+
+
+

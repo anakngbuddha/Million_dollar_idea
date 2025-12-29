@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
+import { QuizViolationNotification } from '../../components/QuizViolationNotification';
+import { useQuizProtection } from '../../hooks/useQuizProtection';
 import { saveQuizResult } from '../../services/quizService';
 import {
   CheckCircle,
-  XCircle,
   AlertCircle,
-  LogOut,
-  Menu,
-  X,
   Clock,
-  BookOpen,
-  BarChart4,
-  Users,
-  Settings,
-  Search,
-  Home,
-} from 'lucide-react';
+  XCircle} from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
 interface Question {
@@ -33,9 +25,7 @@ interface Question {
 export const CloudMigrationQuiz: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const quizContainerRef = useRef<HTMLDivElement>(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{[key: number]: number | number[] | boolean}>({});
@@ -45,6 +35,27 @@ export const CloudMigrationQuiz: React.FC = () => {
   const [timeStarted, setTimeStarted] = useState<number | null>(null);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isSavingResults, setIsSavingResults] = useState(false);
+
+  const { state: protectionState, showNotification, requestFullscreen, setQuizActive } = useQuizProtection(quizContainerRef, {
+    maxViolations: 5,
+    onViolation: (count) => {
+      console.log(`Quiz violation detected: ${count}`);
+    },
+    onAutoSubmit: () => {
+      console.log('Auto-submitting quiz due to violations');
+      handleCompleteQuiz();
+    },
+    enabled: quizStarted && !quizCompleted,
+  });
+
+  useEffect(() => {
+    if (quizStarted && !quizCompleted) {
+      setQuizActive(true);
+      requestFullscreen();
+    } else {
+      setQuizActive(false);
+    }
+  }, [quizStarted, quizCompleted, requestFullscreen, setQuizActive]);
 
   const questions: Question[] = [
     {
@@ -142,17 +153,6 @@ export const CloudMigrationQuiz: React.FC = () => {
     }
   }, [quizStarted, timeStarted, quizCompleted]);
 
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   const handleAnswer = (questionIndex: number, answerIndex: number | boolean) => {
     const question = questions[questionIndex];
@@ -263,8 +263,7 @@ export const CloudMigrationQuiz: React.FC = () => {
             userAnswer: userAnswerStr,
             correctAnswer: correctAnswerStr,
             isCorrect: isCorrect,
-            points: isCorrect ? 1 : 0,
-          };
+            points: isCorrect ? 1 : 0};
         });
 
         await saveQuizResult(
@@ -319,85 +318,11 @@ export const CloudMigrationQuiz: React.FC = () => {
     return null;
   }
 
-  const navigationItems = [
-    { icon: Home, label: 'Dashboard', href: '/dashboard', active: false },
-    { icon: BookOpen, label: 'My Quizzes', href: '/quizzes', active: true },
-    { icon: BarChart4, label: 'Performance', href: '/analytics' },
-    { icon: Users, label: 'Community', href: '#' },
-    { icon: Settings, label: 'Settings', href: '#' },
-  ];
-
   return (
+    <AppLayout hideNavigation={protectionState.isQuizActive}>
     <div className="dashboard-container">
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="search-bar">
-              <Search size={16} className="search-icon" />
-              <input type="text" placeholder="Search quizzes..." />
-            </div>
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">{user.displayName || user.email?.split('@')[0]}</div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div className="profile-avatar" onMouseEnter={() => setDropdownOpen(true)} onMouseLeave={() => setDropdownOpen(false)}>
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="profile-avatar-image" />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>{(user.email?.[0] || 'U').toUpperCase()}</span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button onClick={handleLogout} disabled={logoutLoading} className="dropdown-item danger">
-                        <LogOut size={14} />
-                        {logoutLoading ? 'Logging out...' : 'Logout'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            {navigationItems.map((item) => (
-              <a key={item.label} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">Review the explanations to strengthen your knowledge!</div>
-            </div>
-          </div>
-        </aside>
-
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           {!quizStarted ? (
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
               <div style={{ backgroundColor: 'rgba(22, 33, 62, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '50px 40px', borderRadius: '12px', textAlign: 'center' }}>
@@ -418,7 +343,13 @@ export const CloudMigrationQuiz: React.FC = () => {
               </div>
             </div>
           ) : !quizCompleted ? (
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
+            <div ref={quizContainerRef} style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
+              <QuizViolationNotification
+                show={showNotification}
+                message={protectionState.warningMessage}
+                violations={protectionState.violations}
+                maxViolations={5}
+              />
               <div style={{ backgroundColor: 'rgba(22, 33, 62, 0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '24px', borderRadius: '12px', marginBottom: '30px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div>
@@ -557,7 +488,11 @@ export const CloudMigrationQuiz: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
 
 export default CloudMigrationQuiz;
+
+
+

@@ -1,45 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
 import {
-  ArrowLeft,
-  Search,
   Filter,
   Clock,
   Users,
-  BarChart3,
   Star,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  User,
   ChevronRight,
+  Search,
 } from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
 export const QuizList: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
 
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -65,15 +44,6 @@ export const QuizList: React.FC = () => {
     return null;
   }
 
-  const navigationItems = [
-    { icon: BarChart3, label: 'Dashboard', href: '/dashboard', active: false },
-    { icon: Search, label: 'Quiz Catalog', href: '/quizzes', active: true },
-    { icon: Search, label: 'My Quizzes', href: '/my-quizzes', active: false },
-    { icon: BarChart3, label: 'Performance', href: '/analytics' },
-    { icon: Users, label: 'Community', href: '/community' },
-    { icon: Settings, label: 'Settings', href: '#' },
-  ];
-
   const quizzes = [
     // Migration Quizzes with Navigation
     {
@@ -87,8 +57,7 @@ export const QuizList: React.FC = () => {
       rating: 4.7,
       completed: false,
       category: 'Migration',
-      href: '/quiz/storage-migration',
-    },
+      href: '/quiz/storage-migration'},
     {
       id: 2,
       title: 'Cloud Migration Framework',
@@ -100,8 +69,7 @@ export const QuizList: React.FC = () => {
       rating: 4.8,
       completed: false,
       category: 'Migration',
-      href: '/quiz/cloud-migration',
-    },
+      href: '/quiz/cloud-migration'},
     {
       id: 3,
       title: 'Huawei Cloud Migration Essentials',
@@ -113,8 +81,7 @@ export const QuizList: React.FC = () => {
       rating: 4.9,
       completed: false,
       category: 'Migration',
-      href: '/quiz/huawei-cloud-migration',
-    },
+      href: '/quiz/huawei-cloud-migration'},
     {
       id: 4,
       title: 'Cloud Migration Essentials',
@@ -126,8 +93,7 @@ export const QuizList: React.FC = () => {
       rating: 4.6,
       completed: false,
       category: 'Migration',
-      href: '/quiz/migration-essentials',
-    },
+      href: '/quiz/migration-essentials'},
     {
       id: 5,
       title: 'Database Migration - Ch 6-7',
@@ -139,8 +105,7 @@ export const QuizList: React.FC = () => {
       rating: 4.8,
       completed: false,
       category: 'Migration',
-      href: '/quiz/migration-chap-6-7',
-    },
+      href: '/quiz/migration-chap-6-7'},
   ];
 
   const filteredQuizzes = quizzes.filter(quiz => {
@@ -161,120 +126,10 @@ export const QuizList: React.FC = () => {
   };
 
   return (
+    <AppLayout>
     <div className="dashboard-container">
-      {/* Top Navigation */}
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button 
-              className="menu-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <button 
-              className="menu-toggle"
-              onClick={() => navigate('/dashboard')}
-              style={{ marginLeft: '8px', padding: '8px' }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="search-bar">
-              <Search size={16} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Search quizzes..." 
-              />
-            </div>
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">
-                  {user.displayName || user.email?.split('@')[0]}
-                </div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div 
-                className="profile-avatar"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              >
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt="Profile" 
-                    className="profile-avatar-image"
-                  />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>
-                    {(user.email?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button className="dropdown-item">
-                        <User size={16} /> Profile
-                      </button>
-                      <button className="dropdown-item">
-                        <Settings size={16} /> Settings
-                      </button>
-                      <div className="dropdown-divider"></div>
-                      <button
-                        className="dropdown-item danger"
-                        onClick={handleLogout}
-                        disabled={logoutLoading}
-                      >
-                        <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <div className="dashboard-layout">
-        {/* Sidebar */}
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            {navigationItems.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`sidebar-item ${item.active ? 'active' : ''}`}
-              >
-                <item.icon size={20} />
-                <span>{item.label}</span>
-              </a>
-            ))}
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-tip">
-              <div className="sidebar-tip-label">Pro Tip</div>
-              <div className="sidebar-tip-text">
-                Challenge your friends to quizzes!
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           
           {/* Header */}
           <div className="content-header">
@@ -297,8 +152,7 @@ export const QuizList: React.FC = () => {
                 alignItems: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap',
-              }}
+                whiteSpace: 'nowrap'}}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#d63948';
                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -318,8 +172,7 @@ export const QuizList: React.FC = () => {
             display: 'grid',
             gridTemplateColumns: '1fr auto auto',
             gap: '16px',
-            marginBottom: '24px',
-          }}>
+            marginBottom: '24px'}}>
             <div className="search-bar" style={{ width: '100%' }}>
               <Search size={16} className="search-icon" />
               <input 
@@ -332,8 +185,7 @@ export const QuizList: React.FC = () => {
             <div style={{
               display: 'flex',
               gap: '8px',
-              alignItems: 'center',
-            }}>
+              alignItems: 'center'}}>
               <Filter size={18} style={{ color: 'var(--color-text-secondary)' }} />
               <select 
                 value={filterCategory}
@@ -348,8 +200,7 @@ export const QuizList: React.FC = () => {
                   fontSize: '14px',
                   appearance: 'auto',
                   WebkitAppearance: 'menulist',
-                  MozAppearance: 'menulist',
-                }}
+                  MozAppearance: 'menulist'}}
               >
                 <option value="all">All Categories</option>
                 <option value="Database">Database</option>
@@ -362,8 +213,7 @@ export const QuizList: React.FC = () => {
             <div style={{
               display: 'flex',
               gap: '8px',
-              alignItems: 'center',
-            }}>
+              alignItems: 'center'}}>
               <select 
                 value={filterDifficulty}
                 onChange={(e) => setFilterDifficulty(e.target.value)}
@@ -377,8 +227,7 @@ export const QuizList: React.FC = () => {
                   fontSize: '14px',
                   appearance: 'auto',
                   WebkitAppearance: 'menulist',
-                  MozAppearance: 'menulist',
-                }}
+                  MozAppearance: 'menulist'}}
               >
                 <option value="all">All Levels</option>
                 <option value="Beginner">Beginner</option>
@@ -392,8 +241,7 @@ export const QuizList: React.FC = () => {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-            gap: '20px',
-          }}>
+            gap: '20px'}}>
             {filteredQuizzes.map((quiz) => (
               <div 
                 key={quiz.id}
@@ -405,8 +253,7 @@ export const QuizList: React.FC = () => {
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   display: 'flex',
-                  flexDirection: 'column',
-                }}
+                  flexDirection: 'column'}}
                 onMouseEnter={(e) => {
                   const el = e.currentTarget;
                   el.style.transform = 'translateY(-4px)';
@@ -422,22 +269,19 @@ export const QuizList: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  marginBottom: '12px',
-                }}>
+                  marginBottom: '12px'}}>
                   <div>
                     <h3 style={{
                       fontSize: '16px',
                       fontWeight: '600',
                       color: 'var(--color-text)',
-                      margin: '0 0 4px 0',
-                    }}>
+                      margin: '0 0 4px 0'}}>
                       {quiz.title}
                     </h3>
                     <p style={{
                       fontSize: '12px',
                       color: 'var(--color-text-secondary)',
-                      margin: 0,
-                    }}>
+                      margin: 0}}>
                       {quiz.questions} questions • {quiz.category}
                     </p>
                   </div>
@@ -445,8 +289,7 @@ export const QuizList: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: '#fbbf24',
-                  }}>
+                    color: '#fbbf24'}}>
                     <Star size={14} fill="#fbbf24" />
                     <span style={{ fontSize: '12px', fontWeight: '600' }}>{quiz.rating}</span>
                   </div>
@@ -456,8 +299,7 @@ export const QuizList: React.FC = () => {
                   fontSize: '13px',
                   color: 'var(--color-text-secondary)',
                   margin: '0 0 12px 0',
-                  flexGrow: 1,
-                }}>
+                  flexGrow: 1}}>
                   {quiz.description}
                 </p>
 
@@ -466,15 +308,13 @@ export const QuizList: React.FC = () => {
                   gap: '12px',
                   marginBottom: '12px',
                   paddingBottom: '12px',
-                  borderBottom: '1px solid var(--color-border)',
-                }}>
+                  borderBottom: '1px solid var(--color-border)'}}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '12px',
-                    color: 'var(--color-text-secondary)',
-                  }}>
+                    color: 'var(--color-text-secondary)'}}>
                     <Clock size={14} />
                     {quiz.avgTime}
                   </div>
@@ -483,8 +323,7 @@ export const QuizList: React.FC = () => {
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '12px',
-                    color: 'var(--color-text-secondary)',
-                  }}>
+                    color: 'var(--color-text-secondary)'}}>
                     <Users size={14} />
                     {quiz.participants}
                   </div>
@@ -495,13 +334,11 @@ export const QuizList: React.FC = () => {
                     marginLeft: 'auto',
                     padding: '4px 8px',
                     borderRadius: '4px',
-                    backgroundColor: `${getDifficultyColor(quiz.difficulty)}20`,
-                  }}>
+                    backgroundColor: `${getDifficultyColor(quiz.difficulty)}20`}}>
                     <span style={{
                       fontSize: '12px',
                       fontWeight: '600',
-                      color: getDifficultyColor(quiz.difficulty),
-                    }}>
+                      color: getDifficultyColor(quiz.difficulty)}}>
                       {quiz.difficulty}
                     </span>
                   </div>
@@ -528,8 +365,7 @@ export const QuizList: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  transition: 'all 0.2s ease',
-                }}
+                  transition: 'all 0.2s ease'}}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'scale(1.02)';
                 }}
@@ -548,8 +384,7 @@ export const QuizList: React.FC = () => {
             <div style={{
               textAlign: 'center',
               padding: '48px 24px',
-              color: 'var(--color-text-secondary)',
-            }}>
+              color: 'var(--color-text-secondary)'}}>
               <Search size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
               <p style={{ fontSize: '16px', fontWeight: '500' }}>No quizzes found</p>
               <p style={{ fontSize: '14px' }}>Try adjusting your search or filters</p>
@@ -564,5 +399,9 @@ export const QuizList: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
+
+
+

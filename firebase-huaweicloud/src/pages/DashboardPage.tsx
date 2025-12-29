@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { AppLayout } from '../components/AppLayout';
 import { getUserQuizAttempts } from '../services/quizService';
 import { getUserForumContributions } from '../services/communityService';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
 import {
   BarChart3,
   TrendingUp,
@@ -15,7 +14,6 @@ import {
   Shield,
   User,
   ChevronRight,
-  Settings,
   Users,
 } from 'lucide-react';
 import '../styles/DashboardPage.css'; 
@@ -23,7 +21,6 @@ import '../styles/DashboardPage.css';
 export const DashboardPage: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [quizStats, setQuizStats] = useState({
     totalQuizzes: 0,
     averageScore: 0,
@@ -120,11 +117,11 @@ export const DashboardPage: React.FC = () => {
   const quickActions = [
     {
       icon: BookOpen,
-      title: 'Take a Quiz',
-      description: 'Browse our catalog and start testing your knowledge.',
-      action: 'Start Now',
+      title: 'Classrooms',
+      description: 'Create and join classes to collaborate with others.',
+      action: 'Go to Classrooms',
       highlight: true,
-      onClick: () => navigate('/quizzes'),
+      onClick: () => navigate('/classrooms'),
     },
     {
       icon: BookOpen,
@@ -150,25 +147,14 @@ export const DashboardPage: React.FC = () => {
       highlight: false,
       onClick: () => navigate('/community'),
     },
-    {
-      icon: Settings,
-      title: 'Profile Settings',
-      description: 'Update your password, email, and preferences.',
-      action: 'Manage',
-      highlight: false,
-      onClick: () => console.log('Settings feature coming soon'),
-    },
   ];
 
   return (
-    <div className="dashboard-container">
-      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
-      <div className="dashboard-layout">
-        <Sidebar isOpen={sidebarOpen} />
-
-        {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+    <AppLayout>
+      <div className="dashboard-container">
+        <div className="dashboard-layout">
+          {/* Main Content */}
+          <main className="main-content">
           
           {/* Header */}
           <div className="content-header">
@@ -273,6 +259,7 @@ export const DashboardPage: React.FC = () => {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
+      </div>
+    </AppLayout>
   );
 };

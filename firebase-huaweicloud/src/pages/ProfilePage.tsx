@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../components/AppLayout';
 import { useAuth } from '../context/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
 import { db } from '../config/firebase';
 import { updateProfile } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -16,7 +15,8 @@ import {
   Mail,
   Calendar,
   Shield,
-  User
+  User,
+  X,
 } from 'lucide-react';
 import '../styles/DashboardPage.css';
 
@@ -32,7 +32,6 @@ interface ProfileData {
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,38 +162,37 @@ export const ProfilePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="dashboard-container">
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          minHeight: '100vh',
-          flexDirection: 'column',
-          gap: '16px'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(233, 69, 96, 0.3)',
-            borderTop: '3px solid #e94560',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <p style={{ color: 'var(--color-text-secondary)', fontWeight: '500' }}>Loading profile...</p>
+      <AppLayout>
+        <div className="dashboard-container">
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            minHeight: '100vh',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid rgba(233, 69, 96, 0.3)',
+              borderTop: '3px solid #e94560',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <p style={{ color: 'var(--color-text-secondary)', fontWeight: '500' }}>Loading profile...</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
+    <AppLayout>
     <div className="dashboard-container">
-      <TopBar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-
       <div className="dashboard-layout">
-        <Sidebar isOpen={sidebarOpen} />
-
         {/* Main Content */}
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
+        <main className="main-content">
           
           {/* Header */}
           <div className="content-header">
@@ -602,7 +600,9 @@ export const ProfilePage: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
-};
+}
 
 export default ProfilePage;
+

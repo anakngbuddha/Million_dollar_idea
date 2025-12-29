@@ -1,6 +1,6 @@
 import type { QuizQuestion } from './quizService';
 
-const BACKEND_API_URL = import.meta.env.VITE_API_URL || '/api/generate-quiz';
+const BACKEND_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/generate-quiz';
 
 export interface QuestionGenerationRequest {
   topic: string;

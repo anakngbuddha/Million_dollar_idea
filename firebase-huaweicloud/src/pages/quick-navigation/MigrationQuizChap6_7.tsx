@@ -1,26 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
-import { logout } from '../../services/authService';
-import { saveQuizResult } from '../../services/quizService';
+import { QuizViolationNotification } from '../../components/QuizViolationNotification';
+import { useQuizProtection } from '../../hooks/useQuizProtection';
 import {
-  ArrowLeft,
-  Search,
   Clock,
-  Users,
-  BarChart3,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  User,
   CheckCircle,
   XCircle,
   Award,
   Zap,
-  Target,
-  TrendingUp,
-} from 'lucide-react';
+  Target} from 'lucide-react';
 import '../../styles/DashboardPage.css';
 
 const quizStyles = `
@@ -81,9 +71,7 @@ interface Question {
 export const MigrationQuizChap6_7: React.FC = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const quizContainerRef = useRef<HTMLDivElement>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
@@ -92,8 +80,6 @@ export const MigrationQuizChap6_7: React.FC = () => {
   const [results, setResults] = useState<any[]>([]);
   const [quizStarted, setQuizStarted] = useState(false);
   const [timeStarted, setTimeStarted] = useState<number | null>(null);
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [isSavingResults, setIsSavingResults] = useState(false);
 
   const questions: Question[] = [
     {
@@ -418,32 +404,33 @@ export const MigrationQuizChap6_7: React.FC = () => {
     }
   ];
 
+  const { state: protectionState, showNotification, requestFullscreen, setQuizActive } = useQuizProtection(quizContainerRef, {
+    maxViolations: 5,
+    onViolation: (count) => {
+      console.log(`Quiz violation detected: ${count}`);
+    },
+    onAutoSubmit: () => {
+      console.log('Auto-submitting quiz due to violations');
+      handleSubmitQuiz();
+    },
+    enabled: quizStarted && currentQuestion < questions.length,
+  });
+
+  useEffect(() => {
+    if (quizStarted && currentQuestion < questions.length) {
+      setQuizActive(true);
+      requestFullscreen();
+    } else {
+      setQuizActive(false);
+    }
+  }, [quizStarted, currentQuestion, questions.length, requestFullscreen, setQuizActive]);
+
   useEffect(() => {
     if (quizStarted && !timeStarted) {
       setTimeStarted(Date.now());
     }
   }, [quizStarted, timeStarted]);
 
-  useEffect(() => {
-    if (quizStarted && timeStarted && !showResult) {
-      const interval = setInterval(() => {
-        setTimeSpent(Math.floor((Date.now() - timeStarted) / 1000));
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [quizStarted, timeStarted, showResult]);
-
-  const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -507,6 +494,10 @@ export const MigrationQuizChap6_7: React.FC = () => {
     setAnswered(true);
   };
 
+  const handleSubmitQuiz = () => {
+    handleNext();
+  };
+
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
@@ -525,146 +516,25 @@ export const MigrationQuizChap6_7: React.FC = () => {
     setAnswered(false);
     setResults([]);
     setTimeStarted(null);
-    setTimeSpent(0);
     setQuizStarted(false);
   };
 
-  const getAnswerClass = (index: number) => {
-    if (!answered) {
-      return selectedAnswers.includes(index) 
-        ? 'bg-blue-100 border-blue-500' 
-        : 'bg-white hover:bg-gray-50';
-    }
-
-    const question = questions[currentQuestion];
-    const isCorrectAnswer = question.correct.includes(index);
-    const isSelected = selectedAnswers.includes(index);
-
-    if (isCorrectAnswer) {
-      return 'bg-green-100 border-green-500';
-    }
-    if (isSelected && !isCorrectAnswer) {
-      return 'bg-red-100 border-red-500';
-    }
-    return 'bg-white';
-  };
 
   if (!quizStarted) {
     return (
-      <div className="dashboard-container">
-        <nav className="dashboard-nav">
-          <div className="nav-content">
-            <div className="nav-left">
-              <button 
-                className="menu-toggle"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-              <button 
-                className="menu-toggle"
-                onClick={() => navigate('/quizzes')}
-                style={{ marginLeft: '8px', padding: '8px' }}
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div className="nav-logo">
-                <div className="logo-icon">Q</div>
-                <span className="nav-title">QuizHub</span>
-              </div>
-            </div>
-
-            <div className="nav-right">
-              <div className="search-bar">
-                <Search size={16} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search quizzes..." 
-                />
-              </div>
-              <div className="divider-line"></div>
-              <div className="profile-section">
-                <div className="profile-info">
-                  <div className="profile-name">
-                    {user.displayName || user.email?.split('@')[0]}
-                  </div>
-                  <div className="profile-role">Student</div>
-                </div>
-                <div 
-                  className="profile-avatar"
-                  onMouseEnter={() => setDropdownOpen(true)}
-                  onMouseLeave={() => setDropdownOpen(false)}
-                >
-                  {user.photoURL ? (
-                    <img 
-                      src={user.photoURL} 
-                      alt="Profile" 
-                      className="profile-avatar-image"
-                    />
-                  ) : (
-                    <span style={{ color: '#4285F4', fontWeight: '700' }}>
-                      {(user.email?.[0] || 'U').toUpperCase()}
-                    </span>
-                  )}
-                  
-                  {dropdownOpen && (
-                    <div className="dropdown-menu">
-                      <div className="dropdown-header">
-                        <p>{user.email}</p>
-                      </div>
-                      <div className="dropdown-items">
-                        <button className="dropdown-item">
-                          <User size={16} /> Profile
-                        </button>
-                        <button className="dropdown-item">
-                          <Settings size={16} /> Settings
-                        </button>
-                        <div className="dropdown-divider"></div>
-                        <button
-                          className="dropdown-item danger"
-                          onClick={handleLogout}
-                          disabled={logoutLoading}
-                        >
-                          <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        <div className="dashboard-layout">
-          <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-            <div className="sidebar-items">
-              <a href="/dashboard" className="sidebar-item">
-                <BarChart3 size={20} />
-                <span>Dashboard</span>
-              </a>
-              <a href="/quizzes" className="sidebar-item active">
-                <Search size={20} />
-                <span>My Quizzes</span>
-              </a>
-              <a href="/analytics" className="sidebar-item">
-                <BarChart3 size={20} />
-                <span>Performance</span>
-              </a>
-            </div>
-          </aside>
-
-          <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '100vh',
-              padding: '40px 20px',
-              background: 'linear-gradient(135deg, var(--color-background) 0%, rgba(233, 69, 96, 0.03) 100%)',
-            }}>
-              <style>{quizStyles}</style>
+      <AppLayout hideNavigation={false}>
+        <div className="dashboard-container">
+          <div className="dashboard-layout">
+            <main className="main-content">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                padding: '40px 20px',
+                background: 'linear-gradient(135deg, var(--color-background) 0%, rgba(233, 69, 96, 0.03) 100%)'}}>
+                <style>{quizStyles}</style>
               
               <div style={{
                 backgroundColor: 'var(--color-surface)',
@@ -675,8 +545,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 textAlign: 'center',
                 border: '2px solid var(--color-border)',
                 boxShadow: '0 20px 60px rgba(233, 69, 96, 0.1)',
-                animation: 'slideInUp 0.6s ease-out',
-              }}>
+                animation: 'slideInUp 0.6s ease-out'}}>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -685,8 +554,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   height: '80px',
                   borderRadius: '50%',
                   backgroundColor: 'rgba(233, 69, 96, 0.1)',
-                  marginBottom: '24px',
-                }}>
+                  marginBottom: '24px'}}>
                   <Award size={44} style={{ color: '#e94560' }} />
                 </div>
                 
@@ -697,16 +565,14 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   marginBottom: '8px',
                   background: 'linear-gradient(135deg, #e94560 0%, #ff6b7a 100%)',
                   WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}>
+                  WebkitTextFillColor: 'transparent'}}>
                   Database Migration Quiz
                 </h1>
                 
                 <p style={{
                   fontSize: '16px',
                   color: 'var(--color-text-secondary)',
-                  marginBottom: '12px',
-                }}>
+                  marginBottom: '12px'}}>
                   Chapter 6 & 7
                 </p>
                 
@@ -714,8 +580,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   fontSize: '14px',
                   color: 'var(--color-text-secondary)',
                   marginBottom: '36px',
-                  fontWeight: '500',
-                }}>
+                  fontWeight: '500'}}>
                   Advanced Migration Strategies & Database Architecture
                 </p>
 
@@ -723,14 +588,12 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr 1fr',
                   gap: '16px',
-                  marginBottom: '36px',
-                }}>
+                  marginBottom: '36px'}}>
                   <div style={{
                     padding: '16px',
                     backgroundColor: 'var(--color-background)',
                     borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                  }}>
+                    border: '1px solid var(--color-border)'}}>
                     <Zap size={24} style={{ color: '#e94560', margin: '0 auto 8px' }} />
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginBottom: '6px', fontWeight: '600' }}>
                       QUESTIONS
@@ -744,8 +607,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     padding: '16px',
                     backgroundColor: 'var(--color-background)',
                     borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                  }}>
+                    border: '1px solid var(--color-border)'}}>
                     <Clock size={24} style={{ color: '#f59e0b', margin: '0 auto 8px' }} />
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginBottom: '6px', fontWeight: '600' }}>
                       DURATION
@@ -759,8 +621,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     padding: '16px',
                     backgroundColor: 'var(--color-background)',
                     borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                  }}>
+                    border: '1px solid var(--color-border)'}}>
                     <Target size={24} style={{ color: '#10b981', margin: '0 auto 8px' }} />
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginBottom: '6px', fontWeight: '600' }}>
                       PASS SCORE
@@ -777,22 +638,19 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   padding: '16px',
                   marginBottom: '24px',
                   textAlign: 'left',
-                  border: '1px solid var(--color-border)',
-                }}>
+                  border: '1px solid var(--color-border)'}}>
                   <p style={{
                     fontSize: '13px',
                     fontWeight: '600',
                     color: 'var(--color-text)',
-                    marginBottom: '10px',
-                  }}>
+                    marginBottom: '10px'}}>
                     ✓ What you'll learn:
                   </p>
                   <ul style={{
                     fontSize: '13px',
                     color: 'var(--color-text-secondary)',
                     margin: 0,
-                    paddingLeft: '20px',
-                  }}>
+                    paddingLeft: '20px'}}>
                     <li>Object Storage Migration Service (OMS) & DRS strategies</li>
                     <li>Database sharding and distributed architecture patterns</li>
                     <li>Performance optimization and capacity planning</li>
@@ -813,8 +671,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     fontWeight: '700',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
-                    boxShadow: '0 8px 20px rgba(233, 69, 96, 0.3)',
-                  }}
+                    boxShadow: '0 8px 20px rgba(233, 69, 96, 0.3)'}}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#d63548';
                     e.currentTarget.style.transform = 'translateY(-3px)';
@@ -833,123 +690,23 @@ export const MigrationQuizChap6_7: React.FC = () => {
           </main>
         </div>
       </div>
+      </AppLayout>
     );
   }
 
   if (showResult) {
     const percentage = ((score / questions.length) * 100).toFixed(1);
-    const passed = percentage >= 70;
+    const passed = parseFloat(percentage) >= 70;
 
     return (
-      <div className="dashboard-container">
-        <nav className="dashboard-nav">
-          <div className="nav-content">
-            <div className="nav-left">
-              <button 
-                className="menu-toggle"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-              <button 
-                className="menu-toggle"
-                onClick={() => navigate('/quizzes')}
-                style={{ marginLeft: '8px', padding: '8px' }}
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div className="nav-logo">
-                <div className="logo-icon">Q</div>
-                <span className="nav-title">QuizHub</span>
-              </div>
-            </div>
-
-            <div className="nav-right">
-              <div className="search-bar">
-                <Search size={16} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search quizzes..." 
-                />
-              </div>
-              <div className="divider-line"></div>
-              <div className="profile-section">
-                <div className="profile-info">
-                  <div className="profile-name">
-                    {user.displayName || user.email?.split('@')[0]}
-                  </div>
-                  <div className="profile-role">Student</div>
-                </div>
-                <div 
-                  className="profile-avatar"
-                  onMouseEnter={() => setDropdownOpen(true)}
-                  onMouseLeave={() => setDropdownOpen(false)}
-                >
-                  {user.photoURL ? (
-                    <img 
-                      src={user.photoURL} 
-                      alt="Profile" 
-                      className="profile-avatar-image"
-                    />
-                  ) : (
-                    <span style={{ color: '#4285F4', fontWeight: '700' }}>
-                      {(user.email?.[0] || 'U').toUpperCase()}
-                    </span>
-                  )}
-                  
-                  {dropdownOpen && (
-                    <div className="dropdown-menu">
-                      <div className="dropdown-header">
-                        <p>{user.email}</p>
-                      </div>
-                      <div className="dropdown-items">
-                        <button className="dropdown-item">
-                          <User size={16} /> Profile
-                        </button>
-                        <button className="dropdown-item">
-                          <Settings size={16} /> Settings
-                        </button>
-                        <div className="dropdown-divider"></div>
-                        <button
-                          className="dropdown-item danger"
-                          onClick={handleLogout}
-                          disabled={logoutLoading}
-                        >
-                          <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        <div className="dashboard-layout">
-          <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-            <div className="sidebar-items">
-              <a href="/dashboard" className="sidebar-item">
-                <BarChart3 size={20} />
-                <span>Dashboard</span>
-              </a>
-              <a href="/quizzes" className="sidebar-item active">
-                <Search size={20} />
-                <span>My Quizzes</span>
-              </a>
-              <a href="/analytics" className="sidebar-item">
-                <BarChart3 size={20} />
-                <span>Performance</span>
-              </a>
-            </div>
-          </aside>
-
-          <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
-            <div style={{
-              padding: '24px',
-              maxWidth: '900px',
-              margin: '0 auto',
-            }}>
+      <AppLayout hideNavigation={false}>
+        <div className="dashboard-container">
+          <div className="dashboard-layout">
+            <main className="main-content">
+              <div style={{
+                padding: '24px',
+                maxWidth: '900px',
+                margin: '0 auto'}}>
               <style>{quizStyles}</style>
               
               <div style={{
@@ -958,12 +715,10 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 padding: '48px',
                 border: '1px solid var(--color-border)',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-                animation: 'slideInUp 0.6s ease-out',
-              }}>
+                animation: 'slideInUp 0.6s ease-out'}}>
                 <div style={{
                   textAlign: 'center',
-                  marginBottom: '40px',
-                }}>
+                  marginBottom: '40px'}}>
                   <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -972,13 +727,11 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     height: '100px',
                     borderRadius: '50%',
                     backgroundColor: passed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    marginBottom: '28px',
-                  }}>
+                    marginBottom: '28px'}}>
                     <Award style={{
                       width: '52px',
                       height: '52px',
-                      color: passed ? '#10b981' : '#f59e0b',
-                    }} />
+                      color: passed ? '#10b981' : '#f59e0b'}} />
                   </div>
                   
                   <h2 style={{
@@ -990,16 +743,14 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
                       : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                     WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}>
+                    WebkitTextFillColor: 'transparent'}}>
                     {passed ? 'Excellent! Quiz Passed!' : 'Quiz Complete'}
                   </h2>
                   
                   <p style={{
                     fontSize: '16px',
                     color: 'var(--color-text-secondary)',
-                    marginBottom: '16px',
-                  }}>
+                    marginBottom: '16px'}}>
                     You scored <span style={{ fontWeight: '800', color: '#e94560', fontSize: '18px' }}>{score}</span> out of {questions.length} questions
                   </p>
                   
@@ -1008,14 +759,12 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     padding: '24px 40px',
                     borderRadius: '12px',
                     backgroundColor: passed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    marginBottom: '24px',
-                  }}>
+                    marginBottom: '24px'}}>
                     <p style={{
                       fontSize: '48px',
                       fontWeight: '900',
                       margin: '0 0 8px 0',
-                      color: passed ? '#10b981' : '#f59e0b',
-                    }}>
+                      color: passed ? '#10b981' : '#f59e0b'}}>
                       {percentage}%
                     </p>
                     <p style={{
@@ -1024,8 +773,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       color: 'var(--color-text-secondary)',
                       margin: 0,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}>
+                      letterSpacing: '0.5px'}}>
                       Performance Score
                     </p>
                   </div>
@@ -1034,8 +782,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     fontSize: '16px',
                     fontWeight: '600',
                     marginTop: '16px',
-                    color: passed ? '#10b981' : '#f59e0b',
-                  }}>
+                    color: passed ? '#10b981' : '#f59e0b'}}>
                     {passed ? '🎉 Congratulations! Keep up the great work!' : '📚 Review the explanations and try again!'}
                   </p>
                 </div>
@@ -1043,17 +790,14 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 <div style={{
                   marginBottom: '36px',
                   paddingBottom: '28px',
-                  borderBottom: '1px solid var(--color-border)',
-                }}>
+                  borderBottom: '1px solid var(--color-border)'}}>
                   <h3 style={{
-                    fontSize: '18px',
                     fontWeight: '700',
                     color: 'var(--color-text)',
                     marginBottom: '18px',
-                    textTransform: 'uppercase',
+                    textTransform: 'uppercase' as const,
                     letterSpacing: '0.5px',
-                    fontSize: '14px',
-                  }}>
+                    fontSize: '14px'}}>
                     📊 Review Your Answers
                   </h3>
                   <div style={{
@@ -1062,8 +806,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    paddingRight: '8px',
-                  }}>
+                    paddingRight: '8px'}}>
                     {results.map((result, idx) => (
                       <div 
                         key={idx}
@@ -1074,8 +817,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                           border: '1px solid',
                           borderColor: result.correct ? '#d1fae5' : '#fee2e2',
                           backgroundColor: result.correct ? '#f0fdf4' : '#fef2f2',
-                          transition: 'all 0.3s ease',
-                        }}
+                          transition: 'all 0.3s ease'}}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'translateX(4px)';
                           e.currentTarget.style.boxShadow = '0 4px 12px ' + (result.correct ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)');
@@ -1087,8 +829,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       >
                         <div style={{
                           display: 'flex',
-                          gap: '14px',
-                        }}>
+                          gap: '14px'}}>
                           <div style={{ flexShrink: 0 }}>
                             {result.correct ? (
                               <CheckCircle size={22} style={{ color: '#10b981' }} />
@@ -1101,8 +842,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                               fontWeight: '700',
                               color: 'var(--color-text)',
                               marginBottom: '6px',
-                              fontSize: '15px',
-                            }}>
+                              fontSize: '15px'}}>
                               Q{idx + 1}: {result.question}
                             </p>
                             <p style={{
@@ -1110,8 +850,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                               color: 'var(--color-text-secondary)',
                               fontStyle: 'italic',
                               lineHeight: '1.5',
-                              margin: 0,
-                            }}>
+                              margin: 0}}>
                               {result.explanation}
                             </p>
                           </div>
@@ -1124,8 +863,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: '12px',
-                }}>
+                  gap: '12px'}}>
                   <button
                     onClick={() => navigate('/quizzes')}
                     style={{
@@ -1137,8 +875,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       fontSize: '14px',
                       fontWeight: '700',
                       cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'}}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--color-border)';
                       e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1162,8 +899,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       fontWeight: '700',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 4px 12px rgba(233, 69, 96, 0.25)',
-                    }}
+                      boxShadow: '0 4px 12px rgba(233, 69, 96, 0.25)'}}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#d63548';
                       e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1183,6 +919,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
           </main>
         </div>
       </div>
+      </AppLayout>
     );
   }
 
@@ -1190,116 +927,21 @@ export const MigrationQuizChap6_7: React.FC = () => {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="dashboard-container">
-      <nav className="dashboard-nav">
-        <div className="nav-content">
-          <div className="nav-left">
-            <button 
-              className="menu-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <button 
-              className="menu-toggle"
-              onClick={() => navigate('/quizzes')}
-              style={{ marginLeft: '8px', padding: '8px' }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="nav-logo">
-              <div className="logo-icon">Q</div>
-              <span className="nav-title">QuizHub</span>
-            </div>
-          </div>
-
-          <div className="nav-right">
-            <div className="search-bar">
-              <Search size={16} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Search quizzes..." 
+    <AppLayout hideNavigation={protectionState.isQuizActive}>
+      <div className="dashboard-container">
+        <div className="dashboard-layout">
+          <main className="main-content">
+            <div ref={quizContainerRef} style={{
+              padding: '24px',
+              maxWidth: '850px',
+              margin: '0 auto'}}>
+              <style>{quizStyles}</style>
+              <QuizViolationNotification
+                show={showNotification}
+                message={protectionState.warningMessage}
+                violations={protectionState.violations}
+                maxViolations={5}
               />
-            </div>
-            <div className="divider-line"></div>
-            <div className="profile-section">
-              <div className="profile-info">
-                <div className="profile-name">
-                  {user.displayName || user.email?.split('@')[0]}
-                </div>
-                <div className="profile-role">Student</div>
-              </div>
-              <div 
-                className="profile-avatar"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
-              >
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt="Profile" 
-                    className="profile-avatar-image"
-                  />
-                ) : (
-                  <span style={{ color: '#4285F4', fontWeight: '700' }}>
-                    {(user.email?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <div className="dropdown-header">
-                      <p>{user.email}</p>
-                    </div>
-                    <div className="dropdown-items">
-                      <button className="dropdown-item">
-                        <User size={16} /> Profile
-                      </button>
-                      <button className="dropdown-item">
-                        <Settings size={16} /> Settings
-                      </button>
-                      <div className="dropdown-divider"></div>
-                      <button
-                        className="dropdown-item danger"
-                        onClick={handleLogout}
-                        disabled={logoutLoading}
-                      >
-                        <LogOut size={16} /> {logoutLoading ? 'Signing Out...' : 'Sign Out'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div className="dashboard-layout">
-        <aside className={`sidebar ${!sidebarOpen ? 'closed' : ''}`}>
-          <div className="sidebar-items">
-            <a href="/dashboard" className="sidebar-item">
-              <BarChart3 size={20} />
-              <span>Dashboard</span>
-            </a>
-            <a href="/quizzes" className="sidebar-item active">
-              <Search size={20} />
-              <span>My Quizzes</span>
-            </a>
-            <a href="/analytics" className="sidebar-item">
-              <BarChart3 size={20} />
-              <span>Performance</span>
-            </a>
-          </div>
-        </aside>
-
-        <main className={`main-content ${!sidebarOpen ? 'expanded' : ''}`}>
-          <div style={{
-            padding: '24px',
-            maxWidth: '850px',
-            margin: '0 auto',
-          }}>
-            <style>{quizStyles}</style>
             
             <div style={{
               backgroundColor: 'var(--color-surface)',
@@ -1307,28 +949,24 @@ export const MigrationQuizChap6_7: React.FC = () => {
               padding: '36px',
               border: '1px solid var(--color-border)',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-              animation: 'slideInUp 0.4s ease-out',
-            }}>
+              animation: 'slideInUp 0.4s ease-out'}}>
               {/* Progress Section */}
               <div style={{
                 marginBottom: '28px',
                 paddingBottom: '20px',
-                borderBottom: '1px solid var(--color-border)',
-              }}>
+                borderBottom: '1px solid var(--color-border)'}}>
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '12px',
-                }}>
+                  marginBottom: '12px'}}>
                   <div>
                     <span style={{
                       fontSize: '13px',
                       fontWeight: '700',
                       color: '#e94560',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}>
+                      letterSpacing: '0.5px'}}>
                       Question {currentQuestion + 1} of {questions.length}
                     </span>
                   </div>
@@ -1336,8 +974,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                     <span style={{
                       fontSize: '13px',
                       fontWeight: '600',
-                      color: 'var(--color-text-secondary)',
-                    }}>
+                      color: 'var(--color-text-secondary)'}}>
                       Score: {score}/{currentQuestion + (answered ? 1 : 0)}
                     </span>
                   </div>
@@ -1348,24 +985,21 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   height: '6px',
                   backgroundColor: 'var(--color-background)',
                   borderRadius: '3px',
-                  overflow: 'hidden',
-                }}>
+                  overflow: 'hidden'}}>
                   <div 
                     style={{
                       height: '100%',
                       background: 'linear-gradient(90deg, #e94560 0%, #ff6b7a 100%)',
                       width: `${progress}%`,
                       transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      borderRadius: '3px',
-                    }}
+                      borderRadius: '3px'}}
                   />
                 </div>
               </div>
 
               {/* Question Type Badge */}
               <div style={{
-                marginBottom: '20px',
-              }}>
+                marginBottom: '20px'}}>
                 <span style={{
                   display: 'inline-block',
                   padding: '6px 14px',
@@ -1376,8 +1010,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   borderRadius: '20px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  border: '1px solid rgba(233, 69, 96, 0.2)',
-                }}>
+                  border: '1px solid rgba(233, 69, 96, 0.2)'}}>
                   {question.type === 'true-false' ? '✓ TRUE/FALSE' : 
                    question.type === 'multiple-choice' ? '→ MULTIPLE CHOICE' : 
                    '☑ MULTIPLE ANSWERS'}
@@ -1390,8 +1023,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 fontWeight: '700',
                 color: 'var(--color-text)',
                 marginBottom: '28px',
-                lineHeight: '1.5',
-              }}>
+                lineHeight: '1.5'}}>
                 {question.question}
               </h2>
 
@@ -1401,14 +1033,12 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   backgroundColor: 'rgba(59, 130, 246, 0.05)',
                   borderLeft: '3px solid #3b82f6',
                   borderRadius: '4px',
-                  marginBottom: '20px',
-                }}>
+                  marginBottom: '20px'}}>
                   <p style={{
                     fontSize: '12px',
                     color: '#1e40af',
                     fontWeight: '600',
-                    margin: 0,
-                  }}>
+                    margin: 0}}>
                     ℹ Select all correct answers
                   </p>
                 </div>
@@ -1419,8 +1049,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
-                marginBottom: '28px',
-              }}>
+                marginBottom: '28px'}}>
                 {question.options.map((option, index) => {
                   const isSelected = selectedAnswers.includes(index);
                   const isCorrect = question.correct.includes(index);
@@ -1448,8 +1077,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                         alignItems: 'center',
                         gap: '14px',
                         position: 'relative',
-                        overflow: 'hidden',
-                      }}
+                        overflow: 'hidden'}}
                       onMouseEnter={(e) => {
                         if (!answered) {
                           e.currentTarget.style.transform = 'translateX(4px)';
@@ -1478,8 +1106,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                         backgroundColor: showCorrect ? '#10b981' :
                                         showIncorrect ? '#ef4444' :
                                         isSelected ? '#3b82f6' : 'transparent',
-                        transition: 'all 0.3s ease',
-                      }}>
+                        transition: 'all 0.3s ease'}}>
                         {showCorrect && <CheckCircle size={16} style={{ color: 'white' }} />}
                         {showIncorrect && <XCircle size={16} style={{ color: 'white' }} />}
                         {isSelected && !answered && (
@@ -1487,15 +1114,13 @@ export const MigrationQuizChap6_7: React.FC = () => {
                             width: '8px',
                             height: '8px',
                             backgroundColor: 'white',
-                            borderRadius: '50%',
-                          }} />
+                            borderRadius: '50%'}} />
                         )}
                       </div>
                       <span style={{
                         fontWeight: '500',
                         color: 'var(--color-text)',
-                        fontSize: '15px',
-                      }}>
+                        fontSize: '15px'}}>
                         {option}
                       </span>
                     </button>
@@ -1511,22 +1136,19 @@ export const MigrationQuizChap6_7: React.FC = () => {
                   backgroundColor: '#eff6ff',
                   borderLeft: '4px solid #3b82f6',
                   borderRadius: '8px',
-                  animation: 'slideInUp 0.4s ease-out',
-                }}>
+                  animation: 'slideInUp 0.4s ease-out'}}>
                   <p style={{
                     fontWeight: '700',
                     color: '#1e40af',
                     marginBottom: '8px',
-                    fontSize: '14px',
-                  }}>
+                    fontSize: '14px'}}>
                     💡 Explanation
                   </p>
                   <p style={{
                     color: '#1e3a8a',
                     fontSize: '14px',
                     margin: 0,
-                    lineHeight: '1.6',
-                  }}>
+                    lineHeight: '1.6'}}>
                     {question.explanation}
                   </p>
                 </div>
@@ -1535,8 +1157,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
               {/* Action Buttons */}
               <div style={{
                 display: 'flex',
-                gap: '12px',
-              }}>
+                gap: '12px'}}>
                 {!answered ? (
                   <button
                     onClick={handleSubmitAnswer}
@@ -1552,8 +1173,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       backgroundColor: selectedAnswers.length === 0 ? '#e5e7eb' : '#e94560',
                       color: selectedAnswers.length === 0 ? '#9ca3af' : 'white',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: selectedAnswers.length === 0 ? 'none' : '0 4px 12px rgba(233, 69, 96, 0.25)',
-                    }}
+                      boxShadow: selectedAnswers.length === 0 ? 'none' : '0 4px 12px rgba(233, 69, 96, 0.25)'}}
                     onMouseEnter={(e) => {
                       if (selectedAnswers.length > 0) {
                         e.currentTarget.style.backgroundColor = '#d63548';
@@ -1585,8 +1205,7 @@ export const MigrationQuizChap6_7: React.FC = () => {
                       fontSize: '15px',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
-                    }}
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'}}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#059669';
                       e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1613,5 +1232,9 @@ export const MigrationQuizChap6_7: React.FC = () => {
         }
       `}</style>
     </div>
+    </AppLayout>
   );
 };
+
+
+
