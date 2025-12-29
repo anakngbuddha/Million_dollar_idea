@@ -7,10 +7,19 @@ service cloud.firestore {
       allow write: if request.auth.uid == userId;
     }
 
-    // Quiz Attempts collection - users can only read/write their own attempts
+    // Quiz Attempts collection - users can read their own attempts, instructors can read all for their classroom quizzes
     match /quizAttempts/{attemptId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Allow read if:
+      // 1. User owns the attempt, OR
+      // 2. User is the creator of the quiz (check via customQuizzes)
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        exists(/databases/$(database)/documents/customQuizzes/$(resource.data.quizId)) &&
+        get(/databases/$(database)/documents/customQuizzes/$(resource.data.quizId)).data.creatorId == request.auth.uid
+      );
+      
       allow list: if request.auth != null;
       allow write: if request.auth != null && resource.data.userId == request.auth.uid;
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
@@ -27,14 +36,16 @@ service cloud.firestore {
       // Create: authenticated users can create quizzes
       allow create: if request.auth != null && request.resource.data.creatorId == request.auth.uid;
       
-      // Read: depends on visibility
-      // - public: anyone authenticated can read
-      // - private: only creator can read
-      // - shared: creator or users in sharedWith array can read
+      // Read: depends on visibility or classroom membership or if linked to a classroom quiz
       allow read: if request.auth != null && (
         resource.data.visibility == 'public' ||
         resource.data.creatorId == request.auth.uid ||
-        (resource.data.visibility == 'shared' && request.auth.uid in resource.data.sharedWith)
+        (resource.data.authorId != null && resource.data.authorId == request.auth.uid) ||
+        (resource.data.visibility == 'shared' && request.auth.uid in resource.data.sharedWith) ||
+        (resource.data.visibility == 'classroom' && 
+         exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+         (request.auth.uid in get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.members ||
+          get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid))
       );
       
       // List: authenticated users can list (filtering happens in read rules)
@@ -83,6 +94,112 @@ service cloud.firestore {
           allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
         }
       }
+    }
+
+    // Classrooms collection - collaborative learning spaces
+    match /classrooms/{classroomId} {
+      // Create: authenticated users can create classrooms
+      allow create: if request.auth != null && 
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.members is list &&
+        request.auth.uid in request.resource.data.members;
+      
+      // Read: users who are members of the classroom can read it
+      // Also allow reading public classrooms for joining purposes
+      allow read: if request.auth != null && (
+        request.auth.uid in resource.data.members ||
+        resource.data.isPublic == true
+      );
+      
+      // List: all authenticated users can list all classrooms (both public and their own)
+      allow list: if request.auth != null;
+      
+      // Update: only the author (instructor) can update the classroom details
+      // OR any member can be added via the arrayUnion operation
+      allow update: if request.auth != null && (
+        resource.data.authorId == request.auth.uid ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
+         request.resource.data.members.size() == resource.data.members.size() + 1)
+      );
+      
+      // Delete: only the author can delete the classroom
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+    }
+
+    // Modules collection - course materials uploaded by instructors
+    match /modules/{moduleId} {
+      // Create: authenticated users (instructors) can create modules
+      allow create: if request.auth != null && 
+        request.resource.data.uploadedBy == request.auth.uid;
+      
+      // Read: users who are members of the classroom can read modules
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.members;
+      
+      // List: all authenticated users can list
+      allow list: if request.auth != null;
+      
+      // Update: only the uploader (instructor) can update
+      allow update: if request.auth != null && resource.data.uploadedBy == request.auth.uid;
+      
+      // Delete: only the uploader (instructor) can delete
+      allow delete: if request.auth != null && resource.data.uploadedBy == request.auth.uid;
+    }
+
+    // Assignments collection - homework and projects
+    match /assignments/{assignmentId} {
+      // Create: only classroom instructors can create assignments
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(request.resource.data.classroomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(request.resource.data.classroomId)).data.authorId == request.auth.uid;
+      
+      // Read: classroom members can read assignments assigned to them
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        request.auth.uid in get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.members;
+      
+      // List: all authenticated users can list
+      allow list: if request.auth != null;
+      
+      // Update: only instructor can update assignments and comments, students can submit
+      allow update: if request.auth != null && (
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        (get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['submissions', 'updatedAt']))
+      );
+      
+      // Delete: only instructor can delete
+      allow delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid;
+    }
+
+    // Classroom Quizzes collection - quizzes assigned to classrooms
+    match /classroomQuizzes/{classroomQuizId} {
+      // Create: only classroom instructors can assign quizzes
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(request.resource.data.classroomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(request.resource.data.classroomId)).data.authorId == request.auth.uid;
+      
+      // Read: classroom members can read assigned quizzes, or if the classroom exists
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        (request.auth.uid in get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.members ||
+         get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid);
+      
+      // List: all authenticated users can list
+      allow list: if request.auth != null;
+      
+      // Update: only instructor can update assignments
+      allow update: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid;
+      
+      // Delete: only instructor can delete
+      allow delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)) &&
+        get(/databases/$(database)/documents/classrooms/$(resource.data.classroomId)).data.authorId == request.auth.uid;
     }
   }
 }

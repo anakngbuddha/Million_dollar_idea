@@ -9,12 +9,35 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'mistral';
 const HF_API_KEY = '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';
 const HF_API_URL = 'https://router.huggingface.co/v1/chat/completions';
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running' });
+});
+
+// Config endpoint - removed (no longer using Cloudinary)
+app.get('/api/config', (req, res) => {
+  res.json({
+    message: 'File upload functionality has been removed',
+  });
+});
+
+// Upload file endpoint - REMOVED (Cloudinary functionality deprecated)
+app.post('/api/upload', async (req, res) => {
+  res.status(410).json({ error: 'File upload functionality has been removed' });
+});
+
+// Download file endpoint - REMOVED (Cloudinary functionality deprecated)
+app.get('/api/download/:cloudinaryId(*)', async (req, res) => {
+  res.status(410).json({ error: 'File download functionality has been removed' });
+});
 
 app.post('/api/chat', async (req, res) => {
   try {
